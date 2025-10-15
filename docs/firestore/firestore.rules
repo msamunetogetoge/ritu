@@ -1,0 +1,76 @@
+// Firestore security rules for RITU
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isMe(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    // users (public profile is readable; write is self only)
+    match /users/{uid} {
+      allow read: if true;
+      allow create: if isMe(uid);
+      allow update, delete: if isMe(uid);
+
+      // favorites (follow)
+      match /favorites/{targetUid} {
+        allow read: if isMe(uid);
+        allow create, delete: if isMe(uid);
+      }
+
+      // notifications (server writes, user reads/marks read)
+      match /notifications/{nid} {
+        allow read: if isMe(uid);
+        allow update: if isMe(uid); // mark as read
+        allow create, delete: if false; // only via Admin SDK / backend
+      }
+
+      // linked social accounts
+      match /socialAccounts/{provider} {
+        allow read: if isMe(uid);
+        allow write: if isMe(uid);
+      }
+    }
+
+    // routines
+    match /routines/{rid} {
+      allow read: if resource.data.visibility == "public"
+                  || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+
+      // completions (YYYY-MM-DD docId)
+      match /completions/{dateId} {
+        allow read: if true; // adjust if private needed
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+        allow update: if false; // immutable
+      }
+    }
+
+    // posts (soft-delete via deletedAt)
+    match /posts/{pid} {
+      allow read: if resource.data.deletedAt == null;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+
+      // comments
+      match /comments/{cid} {
+        allow read: if true;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow delete: if isSignedIn() && (
+            request.auth.uid == resource.data.userId || // comment owner
+            request.auth.uid == get(/databases/$(database)/documents/posts/$(pid)).data.userId // post owner
+        );
+        allow update: if false; // optionally allow edit by owner
+      }
+
+      // likes (docId = liker uid)
+      match /likes/{uid} {
+        allow read: if true;
+        allow create, delete: if isMe(uid);
+        allow update: if false;
+      }
+    }
+  }
+}

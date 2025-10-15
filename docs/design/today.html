@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RITU - Today</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbfaf8;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --text:#111827;
+    --accent:#e5e7eb;
+    --primary:#111827; /* 見出し等（黒寄り） */
+    --shadow: 0 8px 24px rgba(0,0,0,.08);
+    --radius: 16px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:#efefef;
+    font-family: Inter, "Noto Sans JP", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    color:var(--text);
+  }
+  /* モバイル端末フレームを再現（中央寄せ） */
+  .phone{
+    width:390px;       /* iPhone 12/13/14 の論理幅相当 */
+    min-height: 844px; /* 画面高の目安 */
+    margin:24px auto;
+    background:var(--bg);
+    border-radius:32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15);
+    overflow:hidden;
+    position:relative;
+  }
+  .content{
+    padding:28px 20px 28px;
+  }
+  /* 上部ロゴ行 */
+  .brand{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .brand-left{display:flex; gap:10px; align-items:center;}
+  .logo{
+    width:28px; height:28px; border-radius:50%;
+    display:grid; place-items:center; background:#11182710;
+  }
+  .logo svg{width:20px; height:20px; color:#111827;}
+  .brand-title{
+    font-weight:800; letter-spacing:.5px; font-size:28px;
+  }
+  .avatar{
+    width:32px; height:32px; border-radius:50%;
+    background:#11182714; display:grid; place-items:center;
+  }
+  .avatar svg{width:18px; height:18px; color:#111827;}
+
+  h1{
+    font-size:34px; font-weight:800; margin:10px 0 18px; letter-spacing:.3px;
+  }
+
+  /* ルーティーンカード */
+  .card{
+    background:var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding:18px;
+    display:flex; flex-direction:column; gap:12px;
+    margin-bottom:16px;
+  }
+  .row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .title-row{gap:14px;}
+  .left{
+    display:flex; align-items:center; gap:12px; min-width:0;
+  }
+  .check{
+    width:28px; height:28px; border-radius:50%;
+    border:2px solid #22c55e; display:grid; place-items:center; color:#22c55e;
+    flex:0 0 auto;
+  }
+  .name{
+    font-size:22px; font-weight:800;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .auto-pill{
+    background:#11182712; color:#111827;
+    font-weight:700; font-size:14px;
+    padding:6px 10px; border-radius:999px;
+  }
+  .sub{
+    display:flex; align-items:center; gap:10px; color:var(--muted); font-size:16px;
+  }
+  .sub .dot{width:6px; height:6px; border-radius:50%; background:#d1d5db;}
+  .time{
+    display:flex; align-items:center; gap:6px; color:#111827; font-weight:700;
+  }
+  .btn{
+    width:100%; padding:14px 0; border:none; border-radius:12px;
+    background:#1118270f; color:#111827; font-weight:800; font-size:20px;
+  }
+  .btn:active{transform:translateY(1px)}
+
+  /* 追加ボックス */
+  .add{
+    background:var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding:18px; display:flex; align-items:center; gap:12px;
+    font-size:18px; font-weight:700; color:#111827;
+    margin:18px 0 24px;
+  }
+  .add .plus{
+    width:28px; height:28px; border-radius:8px; background:#11182710;
+    display:grid; place-items:center; font-weight:900;
+  }
+
+  /* フッター達成率 */
+  .footer{
+    display:flex; align-items:center; gap:12px; font-size:22px; font-weight:800;
+  }
+  .footer .fire{font-size:22px}
+  .footer .muted{font-weight:800; color:#111827}
+  .rate{font-size:28px;}
+  /* 擬似ホームインジケータ */
+  .home-indicator{
+    position:absolute; left:50%; bottom:10px; transform:translateX(-50%);
+    width:140px; height:5px; background:#11182725; border-radius:4px;
+  }
+</style>
+</head>
+<body>
+  <main class="phone" role="main" aria-label="RITU Today">
+    <div class="content">
+      <!-- ヘッダー -->
+      <div class="brand" aria-label="app header">
+        <div class="brand-left">
+          <div class="logo" aria-hidden="true">
+            <!-- ターゲットっぽいアイコン -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="8"></circle>
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v4M2 12h4M12 22v-4M22 12h-4"></path>
+            </svg>
+          </div>
+          <div class="brand-title">RITU</div>
+        </div>
+        <div class="avatar" aria-label="プロフィール">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5C21 16.5 17 14 12 14Z"/>
+          </svg>
+        </div>
+      </div>
+
+      <h1>Today</h1>
+
+      <!-- カード1：朝ラン -->
+      <section class="card" aria-label="朝ラン">
+        <div class="row title-row">
+          <div class="left">
+            <div class="check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div class="name">朝ラン</div>
+          </div>
+          <div class="auto-pill" aria-label="自動投稿ON">A&nbsp;Auto</div>
+        </div>
+
+        <div class="row sub" aria-label="継続情報と通知">
+          <span>12日継続中</span>
+          <span class="dot" aria-hidden="true"></span>
+          <span class="time">
+            <!-- 鐘アイコン -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/>
+              <path d="M9 17a3 3 0 0 0 6 0"/>
+            </svg>
+            <strong>7:00</strong>
+          </span>
+        </div>
+
+        <button class="btn" type="button" aria-label="朝ランを完了">完了</button>
+      </section>
+
+      <!-- カード2：英語勉強 -->
+      <section class="card" aria-label="英語勉強">
+        <div class="row title-row">
+          <div class="left">
+            <div class="check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div class="name">英語勉強</div>
+          </div>
+        </div>
+
+        <div class="sub">30分リスニング中</div>
+        <button class="btn" type="button" aria-label="英語勉強を完了">完了</button>
+      </section>
+
+      <!-- 追加行 -->
+      <div class="add" role="button" aria-label="新しいルーティーンを追加">
+        <div class="plus">＋</div>
+        <div>新しいルーティーンを追加</div>
+      </div>
+
+      <!-- フッター達成率 -->
+      <div class="footer" aria-label="今日の達成率">
+        <span class="fire">🔥</span>
+        <span class="muted">今日の達成率</span>
+        <span class="rate">66%</span>
+      </div>
+    </div>
+
+    <div class="home-indicator" aria-hidden="true"></div>
+  </main>
+</body>
+</html>

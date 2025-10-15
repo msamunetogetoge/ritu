@@ -1,0 +1,36 @@
+# === Deno ===
+# Deno cache directories
+deno_dir/
+.deno/
+.cache/
+.deno_cache/
+
+# Dependency lock file
+deno.lock
+
+# Coverage reports
+coverage/
+cov_profile/
+
+# Compiled output (if you use `deno compile`)
+*.exe
+*.out
+*.app
+*.bin
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Editor / IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

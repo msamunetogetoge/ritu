@@ -1,0 +1,209 @@
+以下に、RITUアプリの**仕様書**と**設計書**を統合したドキュメントを、マークダウン形式で出力します。
+内容はあなたが提供した4つの資料【RITU 🎯 プロジェクト概要】【Scalable, Cost-Efficient GCP Architecture】【Scalable, Developer-Friendly Architecture】【RITU_BE_API_Design.md】を統合し、開発でそのまま使える形に整えています。
+
+---
+
+# 🧭 RITU 仕様書・設計書（統合版）
+
+## 🎯 プロジェクト概要
+
+### 目的
+
+日々のルーティーンを登録・記録し、**継続を可視化・褒めてくれる Web アプリ**を開発。
+SNS連携による「承認」と「モチベーション維持」を狙う。
+
+### 初期リリース
+
+* 対象：**Webアプリのみ**
+* 配信：**Firebase Hosting (CDN/SSL付)**
+* 将来的に：**iOS / Android / Tauri** へ拡張予定（UIとAPIを共通化）
+
+### 技術スタック
+
+| 区分     | 技術                                           | 説明                       |
+| ------ | -------------------------------------------- | ------------------------ |
+| フロント   | React + Vite + TypeScript                    | Webアプリ（最初のリリース対象）        |
+| 認証     | Firebase Auth (Google)                       | Googleログイン認証（JWT発行）      |
+| データ    | Firestore                                    | ルーティーン・履歴・コメント・いいね管理     |
+| バックエンド | Cloud Run  (TS node) | APIロジック・定期処理             |
+| 開発     | Firebase Emulator Suite                      | ローカル一括実行・DB確認            |
+| デプロイ   | Firebase CLI                                 | Hosting + Functions 一括   |
+| 構成管理   | モノレポ (apps + api + shared)                   | 将来Tauri/iOS/Android拡張に対応 |
+
+---
+
+## 🧩 機能要件（MVP）
+
+| カテゴリ     | 機能                     |
+| -------- | ---------------------- |
+| ルーティーン管理 | 登録・編集・削除・完了チェック        |
+| 継続可視化    | 日数・ストリーク表示             |
+| フィードバック  | 達成時にメッセージ or アニメーション表示 |
+| コミュニティ機能 | 投稿共有・コメント・いいね          |
+| データ復旧    | 削除から7日以内なら復元（ソフトデリート）  |
+| 外部連携（将来） | X（旧Twitter）投稿・いいね反映    |
+| 認証       | Googleアカウントログイン（MVP）   |
+
+---
+
+## 🏗 システム構成（GCP / Firebase）
+
+| コンポーネント                 | 役割                                  |
+| ----------------------- | ----------------------------------- |
+| Firebase Hosting        | Reactアプリを配信（CDN/SSL付き）              |
+| Firebase Auth           | Googleログイン認証（JWT発行）                 |
+| Firestore               | ルーティーン・履歴・コメント・いいね管理                |
+| Cloud Run               | APIロジック（TypeScript）・削除スケジュール処理             |
+| Cloud Tasks / Scheduler | ソフトデリート後7日経過時の自動削除                  |
+| Secret Manager          | APIキーやX連携認証情報保管                     |
+| Firebase Emulator Suite | ローカル環境（Auth/Firestore/Functions/UI） |
+
+---
+
+## 🧱 ディレクトリ構造（Monorepo）
+
+```
+repo/
+  apps/
+    web/               # React + Vite (Web)
+  api/
+    functions/         # Cloud Functions (TS)
+  shared/
+    models/            # 共通型定義
+    utils/             # 共通ロジック
+  firebase.json
+  firestore.rules
+  firestore.indexes.json
+  package.json / Cargo.toml
+```
+
+---
+
+## ⚙️ 開発環境とローカル実行
+
+### Firebase Emulator Suite
+
+| サービス        | ポート  |
+| ----------- | ---- |
+| Auth        | 9099 |
+| Firestore   | 8080 |
+| Functions   | 5001 |
+| Hosting     | 5000 |
+| Emulator UI | 4000 |
+
+起動:
+
+```bash
+firebase emulators:start
+```
+
+---
+
+## 🧠 データモデル（Firestore）
+
+| コレクション      | 概要                                 |
+| ----------- | ---------------------------------- |
+| Users       | ユーザプロフィール・設定                       |
+| Routines    | ルーティーン定義（title, schedule, etc）     |
+| Completions | 実績（date, userId, routineId）        |
+| SharedPosts | 共有投稿（routineId, text, likeCountなど） |
+| Comments    | 投稿へのコメント                           |
+| Likes       | 投稿へのいいね                            |
+
+### 共通フィールド
+
+* `createdAt`, `updatedAt`
+* `isDeleted`, `deletedAt`（7日以内復元可能）
+
+---
+
+## 🔐 認証・セキュリティ
+
+* Firebase Auth (Googleログイン)
+* Cloud Functions でJWT検証 (`Authorization: Bearer <FirebaseIDToken>`)
+* Firestore Security Rulesにより、
+
+  * 自分のデータのみ書き込み可能
+  * 共有投稿は全ユーザ閲覧可能（書き込みは本人のみ）
+
+---
+
+## 🧩 API設計（REST / OpenAPI対応）
+
+Base URL: `https://api.ritu.app/v1`
+Auth: `Authorization: Bearer <FirebaseIDToken>`
+Response: JSON
+
+### エンドポイント一覧
+
+| 区分          | HTTP   | パス                          | 説明           |
+| ----------- | ------ | --------------------------- | ------------ |
+| Users       | GET    | /users/me                   | 自分のプロフィール取得  |
+| 〃           | PATCH  | /users/me                   | プロフィール更新     |
+| Routines    | GET    | /routines                   | 自分のルーティーン一覧  |
+| 〃           | POST   | /routines                   | 新規ルーティーン作成   |
+| 〃           | PATCH  | /routines/:id               | 更新           |
+| 〃           | DELETE | /routines/:id               | ソフトデリート      |
+| 〃           | POST   | /routines/:id/restore       | 削除から7日以内に復元  |
+| Completions | POST   | /routines/:id/completions   | 完了登録         |
+| Feed        | GET    | /feed                       | パーソナライズドフィード |
+| Posts       | POST   | /posts                      | 手動投稿（共有）     |
+| Likes       | POST   | /posts/:id/likes            | いいね追加        |
+| Comments    | POST   | /posts/:id/comments         | コメント追加       |
+| Social      | POST   | /social/x/tweet             | X(Twitter)投稿 |
+| Analytics   | GET    | /analytics/me/summary       | 自分の集計情報      |
+| Admin       | POST   | /admin/jobs/cleanup-deleted | 7日経過データ削除    |
+
+---
+
+
+## ♻️ データ削除と復元
+
+* `isDeleted=true`, `deletedAt`を設定して**ソフトデリート**
+* 復元：7日以内に `isDeleted=false`
+* 自動削除：
+
+  * **Cloud Scheduler** (1日1回)
+  * または **Firestore TTL Policy**
+
+---
+
+## 💡 ローカル〜本番デプロイ手順
+
+| 対象              | コマンド                                     | 備考              |
+| --------------- | ---------------------------------------- | --------------- |
+| Hosting         | `firebase deploy --only hosting`         | Reactの`dist/`配信 |
+| Functions       | `firebase deploy --only functions`       | APIデプロイ         |
+| Firestore Rules | `firebase deploy --only firestore:rules` | セキュリティ更新        |
+| 全体              | `firebase deploy`                        | 一括デプロイ          |
+
+---
+
+## 🧰 開発フロー
+
+1. UI実装（Vite）
+2. EmulatorでAuth/Firestore接続
+3. API実行（`firebase serve --only functions`）
+4. Jest / Integration テスト
+5. Firebase Hostingへステージングデプロイ
+6. ユーザ検証後に本番反映
+
+---
+
+## 📊 将来拡張方針
+
+* **Tauri / iOS / Android** への展開（同一API利用）
+* **Cloud Run** によるX連携・集計処理の高速化
+* **Firestore + Cloud Tasks** で自動集計・定期処理
+* **多言語対応** (i18n / locale別streak計算)
+* **AI推薦機能**（将来的にRAGによる行動提案）
+
+---
+
+## ✅ まとめ
+
+* Firebase中心の**Serverless構成**
+* **コスト効率・スケーラビリティ・開発容易性**を両立
+* ローカルで完結できる開発環境（Emulator）
+
+---

@@ -1,0 +1,404 @@
+openapi: 3.0.3
+info:
+  title: RITU API (Deno on Cloud Run)
+  version: 1.0.0
+  description: >
+    REST API for the RITU routine tracking app.
+    Implemented with Deno on Cloud Run. Backed by Firestore (Native).
+servers:
+  - url: https://ritu-api-xxxxxxxx.a.run.app/v1
+    description: Cloud Run (prod)
+  - url: http://localhost:8787/v1
+    description: Local (deno run / deno task dev)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    LimitParam:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  schemas:
+    User:
+      type: object
+      required: [id, displayName, createdAt]
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        photoUrl: { type: string, nullable: true }
+        locale: { type: string }
+        timezone: { type: string }
+        createdAt: { type: string, format: date-time }
+    Routine:
+      type: object
+      required: [id, userId, title, schedule, visibility, createdAt]
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        schedule:
+          type: object
+          additionalProperties: true
+          example: { type: daily }
+        autoShare: { type: boolean, default: false }
+        visibility: { type: string, enum: [private, public, followers], default: private }
+        currentStreak: { type: integer, minimum: 0 }
+        maxStreak: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: string, format: date-time, nullable: true }
+    Completion:
+      type: object
+      required: [id, routineId, userId, date, createdAt]
+      properties:
+        id: { type: string }
+        routineId: { type: string }
+        userId: { type: string }
+        date: { type: string, format: date }
+        createdAt: { type: string, format: date-time }
+    Post:
+      type: object
+      required: [id, userId, createdAt]
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        routineId: { type: string, nullable: true }
+        text: { type: string, nullable: true }
+        imageUrl: { type: string, nullable: true }
+        likeCount: { type: integer }
+        viewCount: { type: integer }
+        externalRef:
+          type: object
+          nullable: true
+          additionalProperties: true
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: string, format: date-time, nullable: true }
+    Comment:
+      type: object
+      required: [id, postId, userId, text, createdAt]
+      properties:
+        id: { type: string }
+        postId: { type: string }
+        userId: { type: string }
+        text: { type: string }
+        likeCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deletedAt: { type: string, format: date-time, nullable: true }
+    Notification:
+      type: object
+      required: [id, userId, type, payload, isRead, createdAt]
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        type: { type: string }
+        payload: { type: object, additionalProperties: true }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses: { '200': { description: OK } }
+  /users/me:
+    get:
+      summary: Get my profile
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+    patch:
+      summary: Update my profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                photoUrl: { type: string }
+                locale: { type: string }
+                timezone: { type: string }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+  /users/{userId}:
+    get:
+      summary: Get public profile
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+  /routines:
+    get:
+      summary: List my routines
+      parameters: [ { $ref: '#/components/parameters/PageParam' }, { $ref: '#/components/parameters/LimitParam' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Routine' } }
+                  page: { type: integer }
+                  limit: { type: integer }
+    post:
+      summary: Create routine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                schedule: { type: object, additionalProperties: true }
+                autoShare: { type: boolean }
+                visibility: { type: string, enum: [private, public, followers] }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Routine' } } } }
+  /routines/{id}:
+    get:
+      summary: Get routine
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Routine' } } } } }
+    patch:
+      summary: Update routine
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                schedule: { type: object, additionalProperties: true }
+                autoShare: { type: boolean }
+                visibility: { type: string, enum: [private, public, followers] }
+      responses: { '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Routine' } } } } }
+    delete:
+      summary: Soft delete routine
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+  /routines/{id}/restore:
+    post:
+      summary: Restore routine within 7 days
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Restored, content: { application/json: { schema: { $ref: '#/components/schemas/Routine' } } } } }
+  /routines/{id}/completions:
+    get:
+      summary: Get completions in range
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Completion' } }
+    post:
+      summary: Record completion
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date]
+              properties:
+                date: { type: string, format: date }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Completion' } } } } }
+  /routines/{id}/streak:
+    get:
+      summary: Get current and max streak
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current: { type: integer }
+                  max: { type: integer }
+  /feed:
+    get:
+      summary: Personalized feed
+      parameters: [ { $ref: '#/components/parameters/PageParam' }, { $ref: '#/components/parameters/LimitParam' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Post' } }
+  /discover:
+    get:
+      summary: Discover posts
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Post' } } } }
+  /discover/random:
+    get:
+      summary: Random recommendations
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Post' } } } } }
+  /posts:
+    get:
+      summary: List posts
+      parameters: [ { $ref: '#/components/parameters/PageParam' }, { $ref: '#/components/parameters/LimitParam' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Post' } }
+    post:
+      summary: Create post manually
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string }
+                imageUrl: { type: string }
+                routineId: { type: string }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } } }
+  /posts/{postId}:
+    get:
+      summary: Get post
+      parameters: [{ name: postId, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } } }
+    delete:
+      summary: Soft delete post
+      parameters: [{ name: postId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+  /posts/{postId}/likes:
+    post:
+      summary: Like post
+      parameters: [{ name: postId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+    delete:
+      summary: Unlike post
+      parameters: [{ name: postId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+  /posts/{postId}/views:
+    post:
+      summary: Increment view count
+      parameters: [{ name: postId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+  /posts/{postId}/comments:
+    get:
+      summary: Get comments
+      parameters: [{ name: postId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Comment' } } } } }
+    post:
+      summary: Add comment
+      parameters: [{ name: postId, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties: { text: { type: string } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Comment' } } } } }
+  /comments/{commentId}:
+    delete:
+      summary: Delete comment
+      parameters: [{ name: commentId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+  /users/me/favorites:
+    get:
+      summary: Get my favorites (users I follow)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    userId: { type: string }
+                    since: { type: string, format: date-time }
+  /users/{userId}/favorite:
+    post:
+      summary: Add favorite
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+    delete:
+      summary: Remove favorite
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
+  /users/{userId}/posts:
+    get:
+      summary: Get user's public posts
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Post' } } } }
+  /analytics/me/summary:
+    get:
+      summary: My analytics summary
+      responses: { '200': { description: OK } }
+  /analytics/posts/trending:
+    get:
+      summary: Trending posts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Post' }
+  /notifications:
+    get:
+      summary: Get notifications
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Notification' }
+  /notifications/{id}/read:
+    patch:
+      summary: Mark notification as read
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: No Content } }
