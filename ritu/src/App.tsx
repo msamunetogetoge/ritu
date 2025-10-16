@@ -1,10 +1,9 @@
-/** @jsxImportSource https://esm.sh/react@18.2.0?target=deno */
 import {
   useCallback,
   useMemo,
   useState,
   type JSX,
-} from "https://esm.sh/react@18.2.0?target=deno";
+} from "react";
 
 export type RoutineStatus = "pending" | "complete";
 
@@ -71,7 +70,7 @@ function RoutineCard({ routine, onToggle }: RoutineCardProps): JSX.Element {
       <div className="row title-row">
         <div className="left">
           <div className="check" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
               <path d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -92,7 +91,7 @@ function RoutineCard({ routine, onToggle }: RoutineCardProps): JSX.Element {
           ) : null}
           {routine.scheduledTime ? (
             <span className="time">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="8"></circle>
                 <path d="M12 8v4l3 1.5"></path>
               </svg>
@@ -182,7 +181,7 @@ export default function App(): JSX.Element {
         <header className="brand" aria-label="アプリ ヘッダー">
           <div className="brand-left">
             <div className="logo" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="8"></circle>
                 <circle cx="12" cy="12" r="4"></circle>
                 <path d="M12 2v4M2 12h4M12 22v-4M22 12h-4"></path>
@@ -239,4 +238,3 @@ export default function App(): JSX.Element {
     </main>
   );
 }
-
