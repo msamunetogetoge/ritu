@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+日本語で応答すること
+
 ## Project Structure & Module Organization
 Core runtime lives in `main.ts`, exported for CLI entry and reuse. Companion tests are co-located as `main_test.ts`. Extended references live under `docs/`: align feature work with `docs/spec.md` (Japanese architecture + product brief), `docs/api/openapi-deno.yaml` (REST contract), and `docs/design/today.html` (Today screen mock). Update the appropriate doc whenever you change API shapes, UI flows, or domain rules to keep design and implementation synchronized.
 
