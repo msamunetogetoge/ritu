@@ -57,7 +57,9 @@ Deno.test("RoutineService completion lifecycle", async () => {
     schedule: { type: "daily" },
   });
 
-  const completion = await service.addCompletion(userId, routine.id, { date: "2024-05-01" });
+  const completion = await service.addCompletion(userId, routine.id, {
+    date: "2024-05-01",
+  });
   assertEquals(completion.date, "2024-05-01");
 
   const listed = await service.listCompletions(userId, routine.id, {});

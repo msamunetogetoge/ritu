@@ -67,17 +67,23 @@ Deno.test("completion lifecycle endpoints", async () => {
   });
   const routine = await create.json();
 
-  const postCompletion = await app.request(`/v1/routines/${routine.id}/completions`, {
-    method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ date: "2024-05-01" }),
-  });
+  const postCompletion = await app.request(
+    `/v1/routines/${routine.id}/completions`,
+    {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ date: "2024-05-01" }),
+    },
+  );
   assertEquals(postCompletion.status, 201);
 
-  const getCompletion = await app.request(`/v1/routines/${routine.id}/completions`, {
-    method: "GET",
-    headers,
-  });
+  const getCompletion = await app.request(
+    `/v1/routines/${routine.id}/completions`,
+    {
+      method: "GET",
+      headers,
+    },
+  );
   const completionList = await getCompletion.json();
   assertEquals(completionList.items.length, 1);
 

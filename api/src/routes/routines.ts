@@ -5,7 +5,10 @@ import type { AppEnv } from "../middlewares/auth.ts";
 import type { RoutineCreateInput, RoutineUpdateInput } from "../types.ts";
 
 /* registerRoutineRoutesはRoutineServiceをHTTPエンドポイントへ公開する。 */
-export function registerRoutineRoutes(app: Hono<AppEnv>, routineService: RoutineService) {
+export function registerRoutineRoutes(
+  app: Hono<AppEnv>,
+  routineService: RoutineService,
+) {
   app.get("/v1/routines", async (c) => {
     const userId = c.get("userId");
     const page = parsePositiveInteger(c.req.query("page"), 1);
@@ -67,7 +70,10 @@ export function registerRoutineRoutes(app: Hono<AppEnv>, routineService: Routine
 
   app.post("/v1/routines/:id/restore", async (c) => {
     const userId = c.get("userId");
-    const restored = await routineService.restoreRoutine(userId, c.req.param("id"));
+    const restored = await routineService.restoreRoutine(
+      userId,
+      c.req.param("id"),
+    );
     return c.json(restored);
   });
 
@@ -75,7 +81,10 @@ export function registerRoutineRoutes(app: Hono<AppEnv>, routineService: Routine
     const userId = c.get("userId");
     const id = c.req.param("id");
     const { from, to } = c.req.query();
-    const items = await routineService.listCompletions(userId, id, { from, to });
+    const items = await routineService.listCompletions(userId, id, {
+      from,
+      to,
+    });
     return c.json({ items });
   });
 
@@ -93,7 +102,11 @@ export function registerRoutineRoutes(app: Hono<AppEnv>, routineService: Routine
     async (c) => {
       const userId = c.get("userId");
       const id = c.req.param("id");
-      const completion = await routineService.addCompletion(userId, id, c.req.valid("json"));
+      const completion = await routineService.addCompletion(
+        userId,
+        id,
+        c.req.valid("json"),
+      );
       return c.json(completion, 201);
     },
   );

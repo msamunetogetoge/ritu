@@ -27,7 +27,10 @@ export class RoutineService {
     this.#repository = options.repository;
   }
 
-  listRoutines(userId: string, pagination: Pagination): Promise<Paginated<Routine>> {
+  listRoutines(
+    userId: string,
+    pagination: Pagination,
+  ): Promise<Paginated<Routine>> {
     return this.#repository.listByUser(userId, pagination);
   }
 
@@ -42,7 +45,10 @@ export class RoutineService {
     return routine;
   }
 
-  async createRoutine(userId: string, input: RoutineCreateInput): Promise<Routine> {
+  async createRoutine(
+    userId: string,
+    input: RoutineCreateInput,
+  ): Promise<Routine> {
     if (!input.title || input.title.trim().length === 0) {
       throw validationError("title is required");
     }
@@ -78,7 +84,11 @@ export class RoutineService {
   }
 
   async deleteRoutine(userId: string, routineId: string): Promise<void> {
-    const routine = await this.#repository.softDelete(userId, routineId, new Date());
+    const routine = await this.#repository.softDelete(
+      userId,
+      routineId,
+      new Date(),
+    );
     if (!routine) {
       throw notFound("routine not found");
     }
@@ -102,7 +112,11 @@ export class RoutineService {
     }
     const restored = await this.#repository.restore(userId, routineId);
     if (!restored) {
-      throw new ServiceError("failed to restore routine", 500, "restore_failed");
+      throw new ServiceError(
+        "failed to restore routine",
+        500,
+        "restore_failed",
+      );
     }
     return restored;
   }
@@ -143,17 +157,28 @@ export class RoutineService {
     return completion;
   }
 
-  async removeCompletion(userId: string, routineId: string, date: string): Promise<void> {
+  async removeCompletion(
+    userId: string,
+    routineId: string,
+    date: string,
+  ): Promise<void> {
     const routine = await this.#ensureRoutineAccessible(userId, routineId);
     this.#assertDate(date);
-    const removed = await this.#repository.removeCompletion(userId, routineId, date);
+    const removed = await this.#repository.removeCompletion(
+      userId,
+      routineId,
+      date,
+    );
     if (!removed) {
       throw notFound("completion not found");
     }
     await this.#refreshStreaks(routine.userId, routineId);
   }
 
-  async #ensureRoutineAccessible(userId: string, routineId: string): Promise<Routine> {
+  async #ensureRoutineAccessible(
+    userId: string,
+    routineId: string,
+  ): Promise<Routine> {
     /* 所有者チェックとソフトデリート判定をまとめて行う。 */
     const routine = await this.#repository.getById(userId, routineId);
     if (!routine) {
@@ -167,7 +192,10 @@ export class RoutineService {
 
   async #refreshStreaks(ownerId: string, routineId: string): Promise<void> {
     /* 完了一覧から連続日数を再計算し、Routineへ反映する。 */
-    const completions = await this.#repository.listCompletions(ownerId, routineId);
+    const completions = await this.#repository.listCompletions(
+      ownerId,
+      routineId,
+    );
     const dates = completions.map((completion) => completion.date);
     const { current, max } = calculateStreaks(dates);
     await this.#repository.updateStreaks(ownerId, routineId, {
@@ -183,7 +211,9 @@ export class RoutineService {
   }
 }
 
-export function calculateStreaks(dates: string[]): { current: number; max: number } {
+export function calculateStreaks(
+  dates: string[],
+): { current: number; max: number } {
   if (dates.length === 0) {
     return { current: 0, max: 0 };
   }

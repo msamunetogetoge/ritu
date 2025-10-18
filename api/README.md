@@ -29,6 +29,9 @@ deno fmt          # フォーマッタ
 deno lint         # Lint
 ```
 
+リポジトリ直下には `deno task dev`（scripts/dev.ts）があり、API（インメモリ実装）とフロントエンドの
+Vite 開発サーバを同時に立ち上げられます。
+
 ## Firestore 実装の組み込み方針
 
 1. `src/repositories` に Firestore 版 `RoutineRepository` を追加し、`RoutineService` から利用する
