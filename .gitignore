@@ -20,6 +20,7 @@ cov_profile/
 
 # Logs
 *.log
+.firebase/
 
 # Environment files
 .env
