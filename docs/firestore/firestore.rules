@@ -48,6 +48,11 @@ service cloud.firestore {
       }
     }
 
+    // collection group access for completions
+    match /{document=**}/completions/{dateId} {
+      allow read: if true;
+    }
+
     // posts (soft-delete via deletedAt)
     match /posts/{pid} {
       allow read: if resource.data.deletedAt == null;

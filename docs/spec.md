@@ -97,6 +97,11 @@ repo/
 firebase emulators:start
 ```
 
+### フロントエンド（Vite）の補足
+
+* Today 画面用の React + Vite プロジェクト（`ritu/` 配下）は Deno 2 の `npm:` 互換モジュールから `deno run -A npm:create-vite` で生成した。以後の依存解決は `deno install` で行える。
+* ローカル実行は `ritu/` ディレクトリ内で `npm run dev` または（Deno タスクを割り当てる場合）`deno task dev` を経由して起動する。
+
 ---
 
 ## 🧠 データモデル（Firestore）
@@ -114,6 +119,24 @@ firebase emulators:start
 
 * `createdAt`, `updatedAt`
 * `isDeleted`, `deletedAt`（7日以内復元可能）
+
+### Today画面（Firestore連携）
+
+* フロントエンドは Firebase Auth の Google ログイン後に `routines` コレクションを `userId == auth.uid` でリアルタイム購読し、`deletedAt` が存在するドキュメントはクライアント側で除外する。
+* 1日の完了状態はコレクショングループ `completions` を `userId` と `date == YYYY-MM-DD` で購読し、同日完了したルーティーン `routineId` を Today 画面に反映する。
+* ルーティーンを完了に切り替えた際は `routines/{rid}/completions/{YYYY-MM-DD}` に `{ id, routineId, userId, date, createdAt }` を書き込み、トランザクションで `currentStreak` と `maxStreak` を更新する。未完了に戻した場合は同じドキュメントを削除し、`currentStreak` をデクリメントする。
+* フロントエンドの Firebase 設定は以下の Vite 環境変数で注入する（すべて必須）。
+
+  | 変数名 | 用途 |
+  | --- | --- |
+  | `VITE_FIREBASE_API_KEY` | Web API Key |
+  | `VITE_FIREBASE_AUTH_DOMAIN` | Auth ドメイン |
+  | `VITE_FIREBASE_PROJECT_ID` | プロジェクト ID |
+  | `VITE_FIREBASE_APP_ID` | Web アプリ ID |
+  | `VITE_FIREBASE_STORAGE_BUCKET` | Storage バケット（任意だが指定推奨） |
+  | `VITE_FIREBASE_MESSAGING_SENDER_ID` | メッセージング Sender ID |
+
+* Emulator Suite を使う場合は `VITE_FIRESTORE_EMULATOR_HOST=localhost:8080` と `VITE_AUTH_EMULATOR_URL=http://localhost:9099` を設定し、フロントエンドは自動でエミュレータへ接続する。
 
 ---
 
@@ -145,7 +168,9 @@ Response: JSON
 | 〃           | PATCH  | /routines/:id               | 更新           |
 | 〃           | DELETE | /routines/:id               | ソフトデリート      |
 | 〃           | POST   | /routines/:id/restore       | 削除から7日以内に復元  |
-| Completions | POST   | /routines/:id/completions   | 完了登録         |
+| Completions | GET    | /routines/:id/completions   | 日付範囲の完了一覧取得 |
+| 〃           | POST   | /routines/:id/completions   | 完了登録         |
+| 〃           | DELETE | /routines/:id/completions/:date | 完了取消（日付指定） |
 | Feed        | GET    | /feed                       | パーソナライズドフィード |
 | Posts       | POST   | /posts                      | 手動投稿（共有）     |
 | Likes       | POST   | /posts/:id/likes            | いいね追加        |
@@ -153,6 +178,8 @@ Response: JSON
 | Social      | POST   | /social/x/tweet             | X(Twitter)投稿 |
 | Analytics   | GET    | /analytics/me/summary       | 自分の集計情報      |
 | Admin       | POST   | /admin/jobs/cleanup-deleted | 7日経過データ削除    |
+
+一覧系エンドポイント（例: `/routines`）は `items`, `page`, `limit`, `total` を含むJSONペイロードを返却する。
 
 ---
 
