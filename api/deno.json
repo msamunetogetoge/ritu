@@ -1,0 +1,25 @@
+{
+  "$schema": "https://deno.land/x/deno@v2.5.4/cli/schemas/config-file.v1.json",
+  "imports": {
+    "hono": "https://deno.land/x/hono@v3.12.2/mod.ts",
+    "hono/http-exception": "https://deno.land/x/hono@v3.12.2/http-exception.ts",
+    "hono/validator": "https://deno.land/x/hono@v3.12.2/validator/index.ts"
+  },
+  "tasks": {
+    "start": "deno run --allow-env --allow-net --allow-read main.ts",
+    "dev": "deno run --watch --allow-env --allow-net --allow-read main.ts",
+    "test": "deno test --allow-env --allow-net --allow-read"
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended"
+      ]
+    }
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "useTabs": false
+  }
+}

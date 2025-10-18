@@ -152,6 +152,7 @@ paths:
                   items: { type: array, items: { $ref: '#/components/schemas/Routine' } }
                   page: { type: integer }
                   limit: { type: integer }
+                  total: { type: integer }
     post:
       summary: Create routine
       requestBody:
@@ -228,6 +229,14 @@ paths:
               properties:
                 date: { type: string, format: date }
       responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Completion' } } } } }
+  /routines/{id}/completions/{date}:
+    delete:
+      summary: Delete completion by date
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: date, in: path, required: true, schema: { type: string, format: date } }
+      responses:
+        '204': { description: No Content }
   /routines/{id}/streak:
     get:
       summary: Get current and max streak
