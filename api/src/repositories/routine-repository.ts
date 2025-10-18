@@ -10,7 +10,10 @@ import type {
 
 /* RoutineRepositoryはストレージ層の契約で、Firestore等の実装を差し替えられるようにする。 */
 export interface RoutineRepository {
-  listByUser(userId: string, pagination: Pagination): Promise<Paginated<Routine>>;
+  listByUser(
+    userId: string,
+    pagination: Pagination,
+  ): Promise<Paginated<Routine>>;
   getById(userId: string, routineId: string): Promise<Routine | null>;
   create(userId: string, input: RoutineCreateInput): Promise<Routine>;
   update(
@@ -23,7 +26,11 @@ export interface RoutineRepository {
     routineId: string,
     streaks: { currentStreak: number; maxStreak: number },
   ): Promise<Routine | null>;
-  softDelete(userId: string, routineId: string, deletedAt: Date): Promise<Routine | null>;
+  softDelete(
+    userId: string,
+    routineId: string,
+    deletedAt: Date,
+  ): Promise<Routine | null>;
   restore(userId: string, routineId: string): Promise<Routine | null>;
   listCompletions(
     userId: string,
@@ -35,5 +42,9 @@ export interface RoutineRepository {
     routineId: string,
     input: CompletionCreateInput,
   ): Promise<Completion | null>;
-  removeCompletion(userId: string, routineId: string, date: string): Promise<boolean>;
+  removeCompletion(
+    userId: string,
+    routineId: string,
+    date: string,
+  ): Promise<boolean>;
 }

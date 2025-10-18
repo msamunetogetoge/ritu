@@ -17,14 +17,21 @@ interface StoredRoutine extends Routine {
 export class InMemoryRoutineRepository implements RoutineRepository {
   #routines = new Map<string, StoredRoutine>();
 
-  listByUser(userId: string, pagination: Pagination): Promise<Paginated<Routine>> {
+  listByUser(
+    userId: string,
+    pagination: Pagination,
+  ): Promise<Paginated<Routine>> {
     const page = Math.max(1, pagination.page);
     const limit = Math.min(Math.max(1, pagination.limit), 100);
     const all = Array.from(this.#routines.values())
-      .filter((routine) => routine.userId === userId && routine.deletedAt === null)
+      .filter((routine) =>
+        routine.userId === userId && routine.deletedAt === null
+      )
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const start = (page - 1) * limit;
-    const items = all.slice(start, start + limit).map((routine) => ({ ...routine }));
+    const items = all.slice(start, start + limit).map((routine) => ({
+      ...routine,
+    }));
     return Promise.resolve({
       items,
       page,
@@ -72,7 +79,9 @@ export class InMemoryRoutineRepository implements RoutineRepository {
       return Promise.resolve(null);
     }
     if (input.title !== undefined) routine.title = input.title;
-    if (input.description !== undefined) routine.description = input.description ?? null;
+    if (input.description !== undefined) {
+      routine.description = input.description ?? null;
+    }
     if (input.schedule !== undefined) routine.schedule = input.schedule ?? {};
     if (input.autoShare !== undefined) routine.autoShare = input.autoShare;
     if (input.visibility !== undefined) routine.visibility = input.visibility;
@@ -97,7 +106,11 @@ export class InMemoryRoutineRepository implements RoutineRepository {
     return Promise.resolve({ ...routine });
   }
 
-  softDelete(userId: string, routineId: string, deletedAt: Date): Promise<Routine | null> {
+  softDelete(
+    userId: string,
+    routineId: string,
+    deletedAt: Date,
+  ): Promise<Routine | null> {
     const routine = this.#routines.get(routineId);
     if (!routine || routine.userId !== userId) {
       return Promise.resolve(null);
@@ -170,7 +183,11 @@ export class InMemoryRoutineRepository implements RoutineRepository {
     return Promise.resolve({ ...completion });
   }
 
-  removeCompletion(userId: string, routineId: string, date: string): Promise<boolean> {
+  removeCompletion(
+    userId: string,
+    routineId: string,
+    date: string,
+  ): Promise<boolean> {
     const routine = this.#routines.get(routineId);
     if (!routine || routine.userId !== userId) {
       return Promise.resolve(false);

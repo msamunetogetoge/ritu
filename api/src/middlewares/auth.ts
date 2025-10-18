@@ -7,7 +7,8 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
   }
   const header = c.req.header("authorization");
   const fallback = c.req.header("x-user-id");
-  const userId = extractUserId(header) ?? (fallback ? fallback.trim() : undefined);
+  const userId = extractUserId(header) ??
+    (fallback ? fallback.trim() : undefined);
   if (!userId) {
     return c.json({ message: "unauthorized" }, 401);
   }
