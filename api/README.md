@@ -32,6 +32,43 @@ deno lint         # Lint
 リポジトリ直下には `deno task dev`（scripts/dev.ts）があり、API（インメモリ実装）とフロントエンドの
 Vite 開発サーバを同時に立ち上げられます。
 
+その他のユーティリティタスク:
+
+```bash
+deno task emulator       # Firebase Emulator (firestore/auth) 起動
+deno task test:firestore # Firestore 実装向けテストをエミュレータに対して実行
+```
+
+## Firestore デプロイ
+
+Firebase CLI を用いて本番 Firestore のルールやインデックスを更新する手順は以下の通りです。
+
+```bash
+firebase login
+firebase use <prod-project-id>
+firebase deploy --only firestore:rules
+firebase deploy --only firestore:indexes
+```
+
+Cloud Run
+ではメタデータサーバ経由でアクセストークンが取得されるため、同一プロジェクトであれば追加設定は不要です。別プロジェクトを参照する場合は
+`FIRESTORE_PROJECT_ID` やサービースアカウントの資格情報を環境変数で指定してください。
+
+## Firestore 接続設定
+
+| 変数名                           | 必須 | 説明                                                                                      |
+| -------------------------------- | ---- | ----------------------------------------------------------------------------------------- |
+| `FIRESTORE_PROJECT_ID`           | ◯    | 接続先の GCP プロジェクトID。Cloud Run では `GOOGLE_CLOUD_PROJECT` が入るため省略可能。   |
+| `FIRESTORE_DATABASE`             | -    | 既定は `(default)`。マルチDB利用時のみ指定。                                              |
+| `FIRESTORE_EMULATOR_HOST`        | -    | `localhost:8080` のように指定すると Firestore Emulator に接続し、認証なしで利用できます。 |
+| `GOOGLE_APPLICATION_CREDENTIALS` | -    | サービスアカウントJSONへのパス。ローカルから本番 Firestore へ接続する際に使用。           |
+| `FIREBASE_SERVICE_ACCOUNT_JSON`  | -    | サービスアカウントJSON文字列（base64デコード結果など）。パス指定の代替。                  |
+| `ROUTINE_REPOSITORY`             | -    | `memory` を指定すると強制的にインメモリ実装を利用します（テスト用途）。                   |
+
+Cloud Run
+上ではメタデータサーバ経由でデフォルトサービスアカウントのトークンを取得するため、追加の設定なしで
+Firestore に接続できます。
+
 ## Firestore 実装の組み込み方針
 
 1. `src/repositories` に Firestore 版 `RoutineRepository` を追加し、`RoutineService` から利用する

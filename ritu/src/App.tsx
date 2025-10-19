@@ -6,202 +6,71 @@ import {
   type User,
 } from "firebase/auth";
 import { type JSX, useCallback, useEffect, useMemo, useState } from "react";
+import { RoutineCard } from "./features/routines/components/RoutineCard.tsx";
+import { RoutineDialog } from "./features/routines/components/RoutineDialog.tsx";
+import { useTodayRoutines } from "./features/routines/hooks/useTodayRoutines.ts";
+import { extractScheduledTime } from "./features/routines/utils.ts";
+import type { Routine, RoutineDialogValue } from "./features/routines/types.ts";
 import { auth } from "./lib/firebase.ts";
 import {
-  createRoutine,
   formatIsoDate,
   type RoutineRecord,
-  setTodayCompletion,
-  subscribeRoutines,
-  subscribeTodayCompletions,
 } from "./services/routine-service.ts";
-
-/* RoutineStatusは今日の完了状況をUI用に表す。 */
-export type RoutineStatus = "pending" | "complete";
-
-/* RoutineはFirestoreのレコードをUI表示向けに整形したデータ。 */
-export interface Routine {
-  readonly id: string;
-  readonly title: string;
-  readonly streakLabel?: string;
-  readonly scheduledTime?: string;
-  readonly nowLabel?: string;
-  readonly autoShare: boolean;
-  readonly status: RoutineStatus;
-}
-
-/* CompletionSummaryはダッシュボード用の完了率メトリクス。 */
-export interface CompletionSummary {
-  readonly total: number;
-  readonly completed: number;
-  readonly rate: number;
-}
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-/* computeCompletionは完了率などの集計値を求める。 */
-function computeCompletion(
-  routines: ReadonlyArray<Routine>,
-): CompletionSummary {
-  const total = routines.length;
-  const completed =
-    routines.filter((routine) => routine.status === "complete").length;
-  const rate = total === 0 ? 0 : Math.round((completed / total) * 100);
-  return { total, completed, rate };
-}
-
-interface RoutineCardProps {
-  readonly routine: Routine;
-  readonly onToggle: (id: Routine["id"]) => void;
-  readonly disabled?: boolean;
-}
-
-/* RoutineCardは個々のルーティーン表示と完了トグルボタンを提供する。 */
-function RoutineCard(
-  { routine, onToggle, disabled }: RoutineCardProps,
-): JSX.Element {
-  const isComplete = routine.status === "complete";
-  const cardClassName = `card${isComplete ? " is-complete" : ""}`;
-
-  return (
-    <section className={cardClassName} aria-label={routine.title}>
-      <div className="row title-row">
-        <div className="left">
-          <div className="check" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-            >
-              <path d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <div className="name">{routine.title}</div>
-        </div>
-        {routine.autoShare
-          ? (
-            <div className="auto-pill" aria-label="自動投稿ON">
-              A&nbsp;Auto
-            </div>
-          )
-          : null}
-      </div>
-
-      {routine.streakLabel || routine.scheduledTime
-        ? (
-          <div className="row sub" aria-label="継続情報">
-            {routine.streakLabel ? <span>{routine.streakLabel}</span> : null}
-            {routine.streakLabel && routine.scheduledTime
-              ? <span className="dot" aria-hidden="true"></span>
-              : null}
-            {routine.scheduledTime
-              ? (
-                <span className="time">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <circle cx="12" cy="12" r="8"></circle>
-                    <path d="M12 8v4l3 1.5"></path>
-                  </svg>
-                  <strong>{routine.scheduledTime}</strong>
-                </span>
-              )
-              : null}
-          </div>
-        )
-        : null}
-
-      {routine.nowLabel ? <div className="sub">{routine.nowLabel}</div> : null}
-
-      <button
-        className="btn"
-        type="button"
-        aria-pressed={isComplete}
-        aria-label={isComplete
-          ? `${routine.title} の完了を取り消す`
-          : `${routine.title} を完了`}
-        onClick={() => onToggle(routine.id)}
-        disabled={disabled}
-      >
-        {isComplete ? "完了済み" : "完了"}
-      </button>
-    </section>
-  );
-}
-
-/* normalizeTimeは空文字やnullを除去して時刻表記を整理する。 */
-function normalizeTime(input: string | null): string | undefined {
-  if (!input) {
-    return undefined;
-  }
-  const trimmed = input.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-/* extractScheduledTimeはFirestoreのscheduleから表示用の時刻文字列を取得。 */
-function extractScheduledTime(
-  schedule: RoutineRecord["schedule"],
-): string | undefined {
-  if (!schedule || typeof schedule !== "object") {
-    return undefined;
-  }
-  const maybeTime = (schedule as { readonly time?: unknown }).time;
-  if (typeof maybeTime !== "string") {
-    return undefined;
-  }
-  const trimmed = maybeTime.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-/* createStreakLabelは継続日数をローカライズしたラベルに変換する。 */
-function createStreakLabel(currentStreak: number): string | undefined {
-  return currentStreak > 0 ? `${currentStreak}日継続中` : undefined;
-}
-
-/* mapRoutineはFirestoreのRoutineRecordと完了一覧からUI用Routineを生成。 */
-function mapRoutine(
-  record: RoutineRecord,
-  completions: ReadonlySet<string>,
-): Routine {
-  const scheduledTime = extractScheduledTime(record.schedule);
-  const status: RoutineStatus = completions.has(record.id)
-    ? "complete"
-    : "pending";
-  return {
-    id: record.id,
-    title: record.title,
-    streakLabel: createStreakLabel(record.currentStreak),
-    scheduledTime,
-    nowLabel: status === "complete" ? "今日の記録済み" : undefined,
-    autoShare: record.autoShare,
-    status,
-  };
-}
-
-/* AppはToday画面全体の状態管理とFirestore購読を統括する。 */
+/* AppはToday画面全体の状態管理とFirestore/REST購読を統括する。 */
 export default function App(): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [routineRecords, setRoutineRecords] = useState<
-    ReadonlyArray<RoutineRecord>
-  >([]);
-  const [routinesLoaded, setRoutinesLoaded] = useState(false);
-  const [completionIds, setCompletionIds] = useState<ReadonlyArray<string>>([]);
-  const [completionsLoaded, setCompletionsLoaded] = useState(false);
-  const [dataError, setDataError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [pendingRoutineIds, setPendingRoutineIds] = useState<Set<string>>(() =>
-    new Set<string>()
-  );
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
 
   const today = useMemo(() => formatIsoDate(new Date()), []);
+  const {
+    routines,
+    routineRecords,
+    deletedRoutineRecords,
+    completion,
+    dataError,
+    isLoading,
+    creating,
+    updatingRoutineId,
+    deletingRoutineIds,
+    pendingRoutineIds,
+    createRoutine: createRoutineAction,
+    updateRoutine: updateRoutineAction,
+    toggleCompletion,
+    deleteRoutine: deleteRoutineAction,
+  } = useTodayRoutines(user, today);
+
+  const defaultDialogValue = useMemo<RoutineDialogValue>(
+    () => ({
+      title: "",
+      scheduledTime: undefined,
+      autoShare: false,
+    }),
+    [],
+  );
+
+  const editingRoutine: RoutineRecord | null = useMemo(() => {
+    if (!editingRoutineId) {
+      return null;
+    }
+    return routineRecords.find((item) => item.id === editingRoutineId) ?? null;
+  }, [editingRoutineId, routineRecords]);
+
+  const editDialogValue = useMemo<RoutineDialogValue>(() => {
+    if (!editingRoutine) {
+      return defaultDialogValue;
+    }
+    return {
+      title: editingRoutine.title,
+      scheduledTime: extractScheduledTime(editingRoutine.schedule),
+      autoShare: editingRoutine.autoShare,
+    };
+  }, [editingRoutine, defaultDialogValue]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -210,61 +79,6 @@ export default function App(): JSX.Element {
     });
     return unsubscribe;
   }, []);
-
-  useEffect(() => {
-    setPendingRoutineIds(new Set<string>());
-    if (!user) {
-      setRoutineRecords([]);
-      setRoutinesLoaded(false);
-      return;
-    }
-
-    setDataError(null);
-    setRoutinesLoaded(false);
-    const unsubscribe = subscribeRoutines(user.uid, {
-      onData: (rows) => {
-        setDataError(null);
-        setRoutineRecords(rows);
-        setRoutinesLoaded(true);
-      },
-      onError: (error) => {
-        console.error("Failed to subscribe routines", error);
-        setDataError("ルーティーンの取得に失敗しました。");
-      },
-    });
-    return unsubscribe;
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) {
-      setCompletionIds([]);
-      setCompletionsLoaded(false);
-      return;
-    }
-
-    setCompletionsLoaded(false);
-    const unsubscribe = subscribeTodayCompletions(user.uid, today, {
-      onData: (rows) => {
-        setDataError(null);
-        setCompletionIds(rows.map((row) => row.routineId));
-        setCompletionsLoaded(true);
-      },
-      onError: (error) => {
-        console.error("Failed to subscribe completions", error);
-        setDataError("完了状況の取得に失敗しました。");
-      },
-    });
-    return unsubscribe;
-  }, [user, today]);
-
-  const completionSet = useMemo(() => new Set(completionIds), [completionIds]);
-  const routines = useMemo(
-    () => routineRecords.map((record) => mapRoutine(record, completionSet)),
-    [routineRecords, completionSet],
-  );
-  const completion = useMemo(() => computeCompletion(routines), [routines]);
-  const isLoading = authLoading ||
-    (user !== null && (!routinesLoaded || !completionsLoaded));
 
   const handleSignIn = useCallback(async () => {
     try {
@@ -286,236 +100,330 @@ export default function App(): JSX.Element {
     }
   }, []);
 
-  const handleAddRoutine = useCallback(async () => {
+  const handleOpenCreateDialog = useCallback(() => {
     if (!user) {
       window.alert("Firestore に保存するにはログインが必要です。");
       return;
     }
-
-    const name = window.prompt("ルーティーン名を入力してください");
-    if (!name) {
-      return;
-    }
-
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      return;
-    }
-
-    const time = normalizeTime(window.prompt("開始時刻 (例: 07:30) ※省略可"));
-    const wantsAutoShare = window.confirm(
-      "自動投稿を有効にしますか？ (OKでON)",
-    );
-
-    setCreating(true);
-    try {
-      await createRoutine(user.uid, {
-        title: trimmedName,
-        scheduledTime: time,
-        autoShare: wantsAutoShare,
-      });
-    } catch (error) {
-      console.error("Failed to create routine", error);
-      window.alert("ルーティーンの作成に失敗しました。");
-    } finally {
-      setCreating(false);
-    }
+    setShowCreateDialog(true);
   }, [user]);
 
-  const handleToggle = useCallback(
-    async (id: Routine["id"]) => {
+  const handleCloseCreateDialog = useCallback(() => {
+    setShowCreateDialog(false);
+  }, []);
+
+  const handleCreateRoutine = useCallback(
+    async (value: RoutineDialogValue) => {
+      try {
+        await createRoutineAction(value);
+        setShowCreateDialog(false);
+      } catch (error) {
+        console.error("Failed to create routine", error);
+        window.alert("ルーティーンの作成に失敗しました。");
+      }
+    },
+    [createRoutineAction],
+  );
+
+  const handleOpenEditDialog = useCallback(
+    (id: Routine["id"]) => {
       if (!user) {
         window.alert("Firestore に保存するにはログインが必要です。");
         return;
       }
-      if (pendingRoutineIds.has(id)) {
+      setEditingRoutineId(id);
+    },
+    [user],
+  );
+
+  const handleCloseEditDialog = useCallback(() => {
+    setEditingRoutineId(null);
+  }, []);
+
+  const handleUpdateRoutine = useCallback(
+    async (value: RoutineDialogValue) => {
+      if (!editingRoutine) {
         return;
       }
-      const routineRecord = routineRecords.find((item) => item.id === id);
-      if (!routineRecord) {
-        return;
-      }
-
-      const nextComplete = !completionSet.has(id);
-      setPendingRoutineIds((prev) => {
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
-
       try {
-        await setTodayCompletion({
-          routine: routineRecord,
-          userId: user.uid,
-          complete: nextComplete,
-          completedAt: new Date(),
-        });
+        await updateRoutineAction(editingRoutine.id, value);
+        setEditingRoutineId(null);
       } catch (error) {
-        console.error("Failed to update completion", error);
-        window.alert("完了状態の更新に失敗しました。");
-      } finally {
-        setPendingRoutineIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
+        console.error("Failed to update routine", error);
+        window.alert("ルーティーンの更新に失敗しました。");
       }
     },
-    [user, routineRecords, completionSet, pendingRoutineIds],
+    [editingRoutine, updateRoutineAction],
+  );
+
+  const handleToggle = useCallback(async (id: Routine["id"]) => {
+    try {
+      await toggleCompletion(id);
+    } catch (error) {
+      console.error("Failed to update completion", error);
+      window.alert("完了状態の更新に失敗しました。");
+    }
+  }, [toggleCompletion]);
+
+  const handleDeleteRoutine = useCallback(async (id: Routine["id"]) => {
+    const target = routines.find((routine) => routine.id === id);
+    const title = target?.title ?? "このルーティーン";
+    const confirmed = window.confirm(
+      `${title} を削除しますか？（7日以内は復元できます）`,
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteRoutineAction(id);
+      if (editingRoutineId === id) {
+        setEditingRoutineId(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete routine", error);
+      window.alert("ルーティーンの削除に失敗しました。");
+    }
+  }, [routines, deleteRoutineAction, editingRoutineId]);
+
+  const deletedSummaries = useMemo(
+    () =>
+      deletedRoutineRecords.map((record) => ({
+        id: record.id,
+        title: record.title,
+        deletedAtLabel: record.deletedAt
+          ? record.deletedAt.toLocaleString("ja-JP", {
+            month: "numeric",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+          : "削除予定日未取得",
+      })),
+    [deletedRoutineRecords],
+  );
+
+  const flameScale = useMemo(
+    () => 1 + (completion.rate / 100) * 0.7,
+    [completion.rate],
+  );
+
+  const renderHeader = () => (
+    <header className="brand" aria-label="アプリ ヘッダー">
+      <div className="brand-left">
+        <div className="logo" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="12" cy="12" r="8"></circle>
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v4M2 12h4M12 22v-4M22 12h-4"></path>
+          </svg>
+        </div>
+        <p className="brand-title">RITU</p>
+      </div>
+      {user
+        ? (
+          <>
+            <div
+              className="avatar"
+              aria-label={user?.displayName ?? "プロフィール"}
+            >
+              {user?.photoURL
+                ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName ?? "プロフィール"}
+                    referrerPolicy="no-referrer"
+                  />
+                )
+                : (
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5C21 16.5 17 14 12 14Z">
+                    </path>
+                  </svg>
+                )}
+            </div>
+            <button
+              className="btn"
+              type="button"
+              onClick={handleSignOut}
+              disabled={isLoading}
+            >
+              ログアウト
+            </button>
+          </>
+        )
+        : null}
+    </header>
   );
 
   if (!authLoading && !user) {
     return (
-      <main className="phone" role="main" aria-label="RITU Today">
-        <div className="content">
-          <header className="brand" aria-label="アプリ ヘッダー">
-            <div className="brand-left">
-              <div className="logo" aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="8"></circle>
-                  <circle cx="12" cy="12" r="4"></circle>
-                  <path d="M12 2v4M2 12h4M12 22v-4M22 12h-4"></path>
-                </svg>
-              </div>
-              <p className="brand-title">RITU</p>
+      <>
+        <main className="phone" role="main" aria-label="RITU Today">
+          <div className="content">
+            {renderHeader()}
+            <div className="main-scroll">
+              <h1>Today</h1>
+              <section className="routine-list" aria-label="ログイン案内">
+                <p className="muted">
+                  Firestore に記録するには Google
+                  アカウントでログインしてください。
+                </p>
+              </section>
+              <button className="btn" type="button" onClick={handleSignIn}>
+                Googleでログイン
+              </button>
             </div>
-          </header>
-
-          <h1>Today</h1>
-          <section className="routine-list" aria-label="ログイン案内">
-            <p className="muted">
-              Firestore に記録するには Google アカウントでログインしてください。
-            </p>
-          </section>
-          <button className="btn" type="button" onClick={handleSignIn}>
-            Googleでログイン
-          </button>
-        </div>
-        <div className="home-indicator" aria-hidden="true"></div>
-      </main>
+          </div>
+          <div className="home-indicator" aria-hidden="true"></div>
+        </main>
+        <RoutineDialog
+          mode="create"
+          open={showCreateDialog}
+          initialValue={defaultDialogValue}
+          submitting={creating}
+          onSubmit={handleCreateRoutine}
+          onClose={handleCloseCreateDialog}
+        />
+        <RoutineDialog
+          mode="edit"
+          open={Boolean(editingRoutine)}
+          initialValue={editDialogValue}
+          submitting={updatingRoutineId !== null}
+          onSubmit={handleUpdateRoutine}
+          onClose={handleCloseEditDialog}
+        />
+      </>
     );
   }
 
   return (
-    <main className="phone" role="main" aria-label="RITU Today">
-      <div className="content">
-        <header className="brand" aria-label="アプリ ヘッダー">
-          <div className="brand-left">
-            <div className="logo" aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="8"></circle>
-                <circle cx="12" cy="12" r="4"></circle>
-                <path d="M12 2v4M2 12h4M12 22v-4M22 12h-4"></path>
-              </svg>
-            </div>
-            <p className="brand-title">RITU</p>
-          </div>
-          <div
-            className="avatar"
-            aria-label={user?.displayName ?? "プロフィール"}
-          >
-            {user?.photoURL
+    <>
+      <main className="phone" role="main" aria-label="RITU Today">
+        <div className="content">
+          {renderHeader()}
+
+          <div className="main-scroll">
+            <h1>Today</h1>
+
+            {dataError
               ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName ?? "プロフィール"}
-                  referrerPolicy="no-referrer"
-                />
+                <p role="alert" className="sub">
+                  {dataError}
+                </p>
               )
-              : (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5C21 16.5 17 14 12 14Z">
-                  </path>
-                </svg>
-              )}
+              : null}
+            {isLoading
+              ? (
+                <p className="muted" aria-live="polite">
+                  Firestore と同期中...
+                </p>
+              )
+              : null}
+
+            <section
+              className="routine-list"
+              aria-live="polite"
+              aria-label="今日のルーティーン"
+            >
+              {routines.map((routine) => (
+                <RoutineCard
+                  key={routine.id}
+                  routine={routine}
+                  onToggle={handleToggle}
+                  onEdit={handleOpenEditDialog}
+                  onDelete={handleDeleteRoutine}
+                  disabled={isLoading || pendingRoutineIds.has(routine.id) ||
+                    updatingRoutineId === routine.id ||
+                    deletingRoutineIds.has(routine.id)}
+                />
+              ))}
+            </section>
+
+            <button
+              className="add"
+              type="button"
+              aria-label="新しいルーティーンを追加"
+              onClick={handleOpenCreateDialog}
+              disabled={creating || isLoading}
+            >
+              <span className="plus" aria-hidden="true">
+                ＋
+              </span>
+              <span>{creating ? "登録中..." : "新しいルーティーンを追加"}</span>
+            </button>
+
+            {deletedSummaries.length > 0
+              ? (
+                <section
+                  className="deleted-section"
+                  aria-label="削除予定のルーティーン"
+                >
+                  <h2>削除予定のルーティーン</h2>
+                  <ul className="deleted-list">
+                    {deletedSummaries.map((item) => (
+                      <li key={item.id} className="deleted-card">
+                        <div className="deleted-title">{item.title}</div>
+                        <div className="deleted-meta">
+                          削除予定: {item.deletedAtLabel}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )
+              : null}
           </div>
-          <button
-            className="btn"
-            type="button"
-            onClick={handleSignOut}
-            disabled={isLoading}
-          >
-            ログアウト
-          </button>
-        </header>
 
-        <h1>Today</h1>
-
-        {dataError
-          ? (
-            <p role="alert" className="sub">
-              {dataError}
-            </p>
-          )
-          : null}
-        {isLoading
-          ? (
-            <p className="muted" aria-live="polite">
-              Firestore と同期中...
-            </p>
-          )
-          : null}
-
-        <section
-          className="routine-list"
-          aria-live="polite"
-          aria-label="今日のルーティーン"
-        >
-          {routines.map((routine) => (
-            <RoutineCard
-              key={routine.id}
-              routine={routine}
-              onToggle={handleToggle}
-              disabled={isLoading || pendingRoutineIds.has(routine.id)}
-            />
-          ))}
-        </section>
-
-        <button
-          className="add"
-          type="button"
-          aria-label="新しいルーティーンを追加"
-          onClick={handleAddRoutine}
-          disabled={creating || isLoading}
-        >
-          <span className="plus" aria-hidden="true">
-            ＋
-          </span>
-          <span>{creating ? "追加中..." : "新しいルーティーンを追加"}</span>
-        </button>
-
-        <footer className="footer" aria-label="今日の達成率">
-          <span aria-hidden="true">🔥</span>
-          <span className="muted">今日の達成率</span>
-          <div
-            className="progress"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={completion.rate}
-            aria-label="今日の完了率"
-          >
-            <span style={{ transform: `scaleX(${completion.rate / 100})` }}>
+          <footer className="footer" aria-label="今日の達成率">
+            <span
+              aria-hidden="true"
+              className="flame"
+              style={{ transform: `scale(${flameScale})` }}
+            >
+              🔥
             </span>
-            <span className="visually-hidden">
-              {`${completion.rate}% 完了`}
-            </span>
-          </div>
-          <span className="rate">{`${completion.rate}%`}</span>
-        </footer>
-      </div>
+            <span className="muted">今日の達成率</span>
+            <div
+              className="progress"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={completion.rate}
+              aria-label="今日の完了率"
+            >
+              <span style={{ transform: `scaleX(${completion.rate / 100})` }}>
+              </span>
+              <span className="visually-hidden">
+                {`${completion.rate}% 完了`}
+              </span>
+            </div>
+            <span className="rate">{`${completion.rate}%`}</span>
+          </footer>
+        </div>
 
-      <div className="home-indicator" aria-hidden="true"></div>
-    </main>
+        <div className="home-indicator" aria-hidden="true"></div>
+      </main>
+      <RoutineDialog
+        mode="create"
+        open={showCreateDialog}
+        initialValue={defaultDialogValue}
+        submitting={creating}
+        onSubmit={handleCreateRoutine}
+        onClose={handleCloseCreateDialog}
+      />
+      <RoutineDialog
+        mode="edit"
+        open={Boolean(editingRoutine)}
+        initialValue={editDialogValue}
+        submitting={updatingRoutineId !== null}
+        onSubmit={handleUpdateRoutine}
+        onClose={handleCloseEditDialog}
+      />
+    </>
   );
 }
