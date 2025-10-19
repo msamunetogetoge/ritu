@@ -298,7 +298,10 @@ export class FirestoreRoutineRepository implements RoutineRepository {
       };
     }
 
-    const responses = await this.#client.runQuery({ structuredQuery }, parentDoc);
+    const responses = await this.#client.runQuery(
+      { structuredQuery },
+      parentDoc,
+    );
     return responses
       .map((entry) => entry.document)
       .filter((doc): doc is FirestoreDocument => Boolean(doc))
@@ -361,7 +364,8 @@ export class FirestoreRoutineRepository implements RoutineRepository {
       id: extractDocumentId(doc),
       userId: decodeValue(fields.userId) as string,
       title: decodeValue(fields.title) as string,
-      description: (decodeValue(fields.description) as string | null | undefined) ?? null,
+      description:
+        (decodeValue(fields.description) as string | null | undefined) ?? null,
       schedule: (decodeValue(fields.schedule) as Record<string, unknown>) ?? {},
       autoShare: Boolean(decodeValue(fields.autoShare)),
       visibility: (decodeValue(fields.visibility) as Routine["visibility"]) ??

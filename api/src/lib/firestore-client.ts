@@ -67,7 +67,9 @@ export class FirestoreClient {
     body: Record<string, unknown>,
     parent?: string,
   ): Promise<RunQueryResponse[]> {
-    const path = parent ? `${parent}:runQuery` : `${this.projectPath}/documents:runQuery`;
+    const path = parent
+      ? `${parent}:runQuery`
+      : `${this.projectPath}/documents:runQuery`;
     return await this.#request<RunQueryResponse[]>(path, "POST", body);
   }
 

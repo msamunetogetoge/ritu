@@ -1,4 +1,7 @@
-import { assertEquals, assertExists } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import {
+  assertEquals,
+  assertExists,
+} from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { documentName, FirestoreClient } from "../lib/firestore-client.ts";
 import { FirestoreRoutineRepository } from "./firestore.ts";
 
