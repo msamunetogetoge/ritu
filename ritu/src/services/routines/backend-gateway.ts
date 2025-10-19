@@ -65,7 +65,7 @@ export function resolveBackendOptions(): BackendGatewayOptions {
 }
 
 function pollRoutines(
-  userId: string,
+  _userId: string,
   options: SubscribeOptions<RoutineRecord>,
   gatewayOptions: BackendGatewayOptions,
 ): () => void {
@@ -99,7 +99,7 @@ function pollRoutines(
 }
 
 function pollCompletions(
-  userId: string,
+  _userId: string,
   isoDate: string,
   options: SubscribeOptions<CompletionRecord>,
   gatewayOptions: BackendGatewayOptions,
@@ -152,7 +152,7 @@ function pollCompletions(
 }
 
 async function createRoutine(
-  userId: string,
+  _userId: string,
   input: CreateRoutineInput,
   options: BackendGatewayOptions,
 ): Promise<string> {

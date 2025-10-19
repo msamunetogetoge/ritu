@@ -85,7 +85,9 @@ export default function App(): JSX.Element {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Failed to sign in", error);
-      window.alert("Google ログインに失敗しました。もう一度お試しください。");
+      globalThis.alert(
+        "Google ログインに失敗しました。もう一度お試しください。",
+      );
     }
   }, []);
 
@@ -94,7 +96,7 @@ export default function App(): JSX.Element {
       await signOut(auth);
     } catch (error) {
       console.error("Failed to sign out", error);
-      window.alert(
+      globalThis.alert(
         "ログアウトに失敗しました。時間をおいて再度お試しください。",
       );
     }
@@ -102,7 +104,7 @@ export default function App(): JSX.Element {
 
   const handleOpenCreateDialog = useCallback(() => {
     if (!user) {
-      window.alert("Firestore に保存するにはログインが必要です。");
+      globalThis.alert("Firestore に保存するにはログインが必要です。");
       return;
     }
     setShowCreateDialog(true);
@@ -119,7 +121,7 @@ export default function App(): JSX.Element {
         setShowCreateDialog(false);
       } catch (error) {
         console.error("Failed to create routine", error);
-        window.alert("ルーティーンの作成に失敗しました。");
+        globalThis.alert("ルーティーンの作成に失敗しました。");
       }
     },
     [createRoutineAction],
@@ -128,7 +130,7 @@ export default function App(): JSX.Element {
   const handleOpenEditDialog = useCallback(
     (id: Routine["id"]) => {
       if (!user) {
-        window.alert("Firestore に保存するにはログインが必要です。");
+        globalThis.alert("Firestore に保存するにはログインが必要です。");
         return;
       }
       setEditingRoutineId(id);
@@ -150,7 +152,7 @@ export default function App(): JSX.Element {
         setEditingRoutineId(null);
       } catch (error) {
         console.error("Failed to update routine", error);
-        window.alert("ルーティーンの更新に失敗しました。");
+        globalThis.alert("ルーティーンの更新に失敗しました。");
       }
     },
     [editingRoutine, updateRoutineAction],
@@ -161,14 +163,14 @@ export default function App(): JSX.Element {
       await toggleCompletion(id);
     } catch (error) {
       console.error("Failed to update completion", error);
-      window.alert("完了状態の更新に失敗しました。");
+      globalThis.alert("完了状態の更新に失敗しました。");
     }
   }, [toggleCompletion]);
 
   const handleDeleteRoutine = useCallback(async (id: Routine["id"]) => {
     const target = routines.find((routine) => routine.id === id);
     const title = target?.title ?? "このルーティーン";
-    const confirmed = window.confirm(
+    const confirmed = globalThis.confirm(
       `${title} を削除しますか？（7日以内は復元できます）`,
     );
     if (!confirmed) {
@@ -181,7 +183,7 @@ export default function App(): JSX.Element {
       }
     } catch (error) {
       console.error("Failed to delete routine", error);
-      window.alert("ルーティーンの削除に失敗しました。");
+      globalThis.alert("ルーティーンの削除に失敗しました。");
     }
   }, [routines, deleteRoutineAction, editingRoutineId]);
 

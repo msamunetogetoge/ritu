@@ -32,8 +32,8 @@ export function RoutineDialog(
         onClose();
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -46,7 +46,7 @@ export function RoutineDialog(
     event.preventDefault();
     const value = normalizeDialogValue(formValue);
     if (value.title.length === 0) {
-      window.alert("タイトルを入力してください。");
+      globalThis.alert("タイトルを入力してください。");
       return;
     }
     onSubmit(value);
@@ -83,11 +83,13 @@ export function RoutineDialog(
             type="text"
             placeholder="例: 朝ラン"
             value={formValue.title}
-            onChange={(event) =>
+            onChange={(event) => {
+              const { value } = event.currentTarget;
               setFormValue((prev) => ({
                 ...prev,
-                title: event.currentTarget.value,
-              }))}
+                title: value,
+              }));
+            }}
             required
           />
         </div>
@@ -99,11 +101,13 @@ export function RoutineDialog(
             name="scheduledTime"
             type="time"
             value={formValue.scheduledTime ?? ""}
-            onChange={(event) =>
+            onChange={(event) => {
+              const { value } = event.currentTarget;
               setFormValue((prev) => ({
                 ...prev,
-                scheduledTime: event.currentTarget.value,
-              }))}
+                scheduledTime: value,
+              }));
+            }}
           />
           <p className="hint">入力すると Today のリマインドに表示されます。</p>
         </div>
@@ -113,11 +117,13 @@ export function RoutineDialog(
             <input
               type="checkbox"
               checked={formValue.autoShare}
-              onChange={(event) =>
+              onChange={(event) => {
+                const { checked } = event.currentTarget;
                 setFormValue((prev) => ({
                   ...prev,
-                  autoShare: event.currentTarget.checked,
-                }))}
+                  autoShare: checked,
+                }));
+              }}
             />
             自動共有をオンにする
           </label>

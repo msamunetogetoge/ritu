@@ -1,4 +1,5 @@
 import type { Routine } from "../types.ts";
+import { ActionButton } from "./ActionButton.tsx";
 
 interface RoutineCardProps {
   readonly routine: Routine;
@@ -81,22 +82,20 @@ export function RoutineCard(
         >
           {isComplete ? "完了済み" : "完了"}
         </button>
-        <button
-          className="link-button"
-          type="button"
+        <ActionButton
+          variant="secondary"
           onClick={() => onEdit(routine.id)}
           disabled={disabled}
         >
           編集
-        </button>
-        <button
-          className="link-button danger"
-          type="button"
+        </ActionButton>
+        <ActionButton
+          variant="danger"
           onClick={() => onDelete(routine.id)}
           disabled={disabled}
         >
           削除
-        </button>
+        </ActionButton>
       </div>
     </section>
   );

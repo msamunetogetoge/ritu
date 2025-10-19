@@ -181,7 +181,7 @@ export function useTodayRoutines(
   const toggleCompletion = useCallback(
     async (routineId: string) => {
       if (!user) {
-        window.alert("Firestore に記録するにはログインが必要です。");
+        globalThis.alert("Firestore に記録するにはログインが必要です。");
         return;
       }
       const target = routineRecords.find((record) => record.id === routineId);

@@ -3,7 +3,7 @@
   "tasks": {
     "dev": "deno run -A scripts/dev.ts",
     "emulator": "deno run -A scripts/emulator.ts",
-    "test:firestore": "deno run -A scripts/test_firestone.ts"
+    "test:firestore": "deno run -A scripts/test_firestore.ts"
   },
   "fmt": {
     "include": [

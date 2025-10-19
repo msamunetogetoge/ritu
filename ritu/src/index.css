@@ -572,6 +572,21 @@ h1 {
   outline-offset: 2px;
 }
 
+.dialog-button.danger {
+  background: transparent;
+  border: 1px solid #f87171;
+  color: #dc2626;
+}
+
+.dialog-button.danger:hover {
+  background: #fee2e2;
+}
+
+.dialog-button.danger:focus-visible {
+  outline: 3px solid #f97316;
+  outline-offset: 2px;
+}
+
 .dialog-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
