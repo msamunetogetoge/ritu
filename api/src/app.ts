@@ -2,23 +2,41 @@ import { Hono } from "hono";
 import type { AppEnv } from "./middlewares/auth.ts";
 import { authMiddleware } from "./middlewares/auth.ts";
 import { registerRoutineRoutes } from "./routes/routines.ts";
+import { registerUserRoutes } from "./routes/users.ts";
+import { registerCommunityRoutes } from "./routes/community.ts";
 import { RoutineService } from "./services/routine-service.ts";
-import { InMemoryRoutineRepository } from "./repositories/in-memory.ts";
+import { UserService } from "./services/user-service.ts";
+import { CommunityService } from "./services/community-service.ts";
+import { InMemoryRoutineRepository, InMemoryUserRepository, InMemoryCommunityRepository } from "./repositories/in-memory.ts";
 import { ServiceError } from "./services/errors.ts";
 import { FirestoreRoutineRepository } from "./repositories/firestore.ts";
+import { FirestoreUserRepository, type UserRepository } from "./repositories/user-repository.ts";
+import { FirestoreCommunityRepository, type CommunityRepository } from "./repositories/community-repository.ts";
 import { FirestoreClient } from "./lib/firestore-client.ts";
 import type { RoutineRepository } from "./repositories/routine-repository.ts";
 
 export interface AppOptions {
   routineService?: RoutineService;
-  repository?: RoutineRepository;
+  userService?: UserService;
+  communityService?: CommunityService;
+  repository?: RoutineRepository; // Simplify: legacy prop
+  routineRepository?: RoutineRepository;
+  userRepository?: UserRepository;
+  communityRepository?: CommunityRepository;
 }
 
 /* createAppはHonoインスタンスを組み立て、認証・ルーティング・エラーハンドリングを束ねる。 */
 export function createApp(options: AppOptions = {}) {
-  const repository = options.repository ?? createDefaultRepository();
+  const routineRepo = options.routineRepository ?? options.repository ?? createDefaultRoutineRepository();
+  const userRepo = options.userRepository ?? createDefaultUserRepository();
+  const communityRepo = options.communityRepository ?? createDefaultCommunityRepository();
+
   const routineService = options.routineService ??
-    new RoutineService({ repository });
+    new RoutineService({ repository: routineRepo });
+  const userService = options.userService ??
+    new UserService({ repository: userRepo });
+  const communityService = options.communityService ??
+    new CommunityService({ repository: communityRepo });
 
   const app = new Hono<AppEnv>();
 
@@ -27,6 +45,8 @@ export function createApp(options: AppOptions = {}) {
   app.use("/v1/*", authMiddleware);
 
   registerRoutineRoutes(app, routineService);
+  registerUserRoutes(app, userService);
+  registerCommunityRoutes(app, communityService);
 
   app.onError((err, c) => {
     /* ドメインエラーはコード付きで返し、それ以外は500にフォールバック。 */
@@ -40,20 +60,42 @@ export function createApp(options: AppOptions = {}) {
   return app;
 }
 
-function createDefaultRepository(): RoutineRepository {
-  const forceMemory = Deno.env.get("ROUTINE_REPOSITORY") === "memory";
-  if (forceMemory) {
-    console.info("[app] Using in-memory routine repository (forced by env).");
-    return new InMemoryRoutineRepository();
+function createDefaultRoutineRepository(): RoutineRepository {
+  const forceMemory = Deno.env.get("ROUTINE_REPOSITORY") === "memory"; // Keep legacy env for now
+  if (forceMemory) return new InMemoryRoutineRepository();
+  
+  const client = createFirestoreClient();
+  if (client) {
+     return new FirestoreRoutineRepository({ client });
   }
+  return new InMemoryRoutineRepository();
+}
 
+function createDefaultUserRepository(): UserRepository {
+  const client = createFirestoreClient();
+  if (client) {
+    return new FirestoreUserRepository({ client });
+  }
+  
+  console.warn("No Firestore client for UserRepo. Using InMemoryUserRepository.");
+  return new InMemoryUserRepository();
+}
+
+function createDefaultCommunityRepository(): CommunityRepository {
+  const client = createFirestoreClient();
+  if (client) {
+    return new FirestoreCommunityRepository({ client });
+  }
+  console.warn("No Firestore client for CommunityRepo. Using InMemoryCommunityRepository.");
+  return new InMemoryCommunityRepository();
+}
+
+function createFirestoreClient(): FirestoreClient | null {
   const projectId = Deno.env.get("FIRESTORE_PROJECT_ID") ??
     Deno.env.get("GOOGLE_CLOUD_PROJECT");
+
   if (!projectId) {
-    console.warn(
-      "[app] FIRESTORE_PROJECT_ID not set. Falling back to in-memory repository.",
-    );
-    return new InMemoryRoutineRepository();
+     return null;
   }
 
   const emulatorHost = Deno.env.get("FIRESTORE_EMULATOR_HOST");
@@ -62,24 +104,15 @@ function createDefaultRepository(): RoutineRepository {
   const serviceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
 
   try {
-    const client = new FirestoreClient({
+    return new FirestoreClient({
       projectId,
       database,
       emulatorHost,
       credentialsPath,
       serviceAccountJson,
     });
-    console.info(
-      `[app] Using Firestore routine repository (projectId=${projectId}, database=${database}${
-        emulatorHost ? `, emulatorHost=${emulatorHost}` : ""
-      }).`,
-    );
-    return new FirestoreRoutineRepository({ client });
   } catch (error) {
-    console.error(
-      "[app] Failed to initialise Firestore repository. Falling back to in-memory.",
-      error,
-    );
-    return new InMemoryRoutineRepository();
+    console.error("Failed to init FirestoreClient", error);
+    return null;
   }
 }
