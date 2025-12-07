@@ -31,14 +31,16 @@ export interface SubscribeOptions<T> {
 
 export interface CreateRoutineInput {
   readonly title: string;
-  readonly scheduledTime?: string;
+  readonly schedule?: Record<string, unknown> | null;
   readonly autoShare: boolean;
+  readonly visibility: RoutineVisibility;
 }
 
 export interface UpdateRoutineInput {
   readonly title?: string;
-  readonly scheduledTime?: string;
+  readonly schedule?: Record<string, unknown> | null;
   readonly autoShare?: boolean;
+  readonly visibility?: RoutineVisibility;
 }
 
 export interface SetCompletionOptions {

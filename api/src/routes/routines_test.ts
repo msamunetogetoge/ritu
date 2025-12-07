@@ -24,6 +24,8 @@ Deno.test("POST /v1/routines creates routine", async () => {
   assertEquals(response.status, 201);
   const body = await response.json();
   assertEquals(body.title, "ストレッチ");
+  assertEquals(body.schedule.type, "daily");
+  assertEquals(body.visibility, "private"); // Default
 });
 
 Deno.test("GET /v1/routines lists routines", async () => {
@@ -51,11 +53,12 @@ Deno.test("PATCH /v1/routines/:id updates routine", async () => {
   const response = await app.request(`/v1/routines/${created.id}`, {
     method: "PATCH",
     headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ title: "夜筋トレ" }),
+    body: JSON.stringify({ title: "夜筋トレ", visibility: "public" }),
   });
   assertEquals(response.status, 200);
   const body = await response.json();
   assertEquals(body.title, "夜筋トレ");
+  assertEquals(body.visibility, "public");
 });
 
 Deno.test("completion lifecycle endpoints", async () => {
