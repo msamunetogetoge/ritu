@@ -50,6 +50,7 @@ export default function App(): JSX.Element {
       title: "",
       scheduledTime: undefined,
       autoShare: false,
+      visibility: "private",
     }),
     [],
   );
@@ -69,6 +70,7 @@ export default function App(): JSX.Element {
       title: editingRoutine.title,
       scheduledTime: extractScheduledTime(editingRoutine.schedule),
       autoShare: editingRoutine.autoShare,
+      visibility: editingRoutine.visibility,
     };
   }, [editingRoutine, defaultDialogValue]);
 

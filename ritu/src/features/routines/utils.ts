@@ -22,6 +22,7 @@ export function normalizeDialogValue(
     title: value.title.trim(),
     scheduledTime: normalizeTime(value.scheduledTime ?? null),
     autoShare: value.autoShare,
+    visibility: value.visibility,
   };
 }
 

@@ -153,8 +153,11 @@ export function useTodayRoutines(
     try {
       await createRoutine(user.uid, {
         title: normalized.title,
-        scheduledTime: normalized.scheduledTime,
+        schedule: normalized.scheduledTime
+          ? { type: "daily", time: normalized.scheduledTime }
+          : null,
         autoShare: normalized.autoShare,
+        visibility: normalized.visibility,
       });
     } finally {
       setCreating(false);
@@ -168,8 +171,11 @@ export function useTodayRoutines(
       try {
         await updateRoutine(id, {
           title: normalized.title,
-          scheduledTime: normalized.scheduledTime,
+          schedule: normalized.scheduledTime
+            ? { type: "daily", time: normalized.scheduledTime }
+            : null,
           autoShare: normalized.autoShare,
+          visibility: normalized.visibility,
         });
       } finally {
         setUpdatingRoutineId(null);

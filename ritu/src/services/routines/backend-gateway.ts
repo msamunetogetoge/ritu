@@ -164,11 +164,9 @@ async function createRoutine(
     },
     body: JSON.stringify({
       title: input.title,
-      schedule: {
-        type: "daily",
-        time: input.scheduledTime ?? null,
-      },
+      schedule: input.schedule,
       autoShare: input.autoShare,
+      visibility: input.visibility,
     }),
   });
   if (!response.ok) {
@@ -186,11 +184,9 @@ async function updateRoutine(
   const patch: Record<string, unknown> = {};
   if (input.title !== undefined) patch.title = input.title;
   if (input.autoShare !== undefined) patch.autoShare = input.autoShare;
-  if (input.scheduledTime !== undefined) {
-    patch.schedule = {
-      type: "daily",
-      time: input.scheduledTime ?? null,
-    };
+  if (input.visibility !== undefined) patch.visibility = input.visibility;
+  if (input.schedule !== undefined) {
+    patch.schedule = input.schedule ?? null;
   }
   const response = await fetch(`${options.baseUrl}/routines/${routineId}`, {
     method: "PATCH",

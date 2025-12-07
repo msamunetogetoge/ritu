@@ -3,7 +3,21 @@ import { fromFileUrl } from "https://deno.land/std@0.208.0/path/mod.ts";
 const root = new URL("../", import.meta.url);
 const cwd = fromFileUrl(root);
 
-const command = new Deno.Command("firebase", {
+const firebaseBin = Deno.build.os === "windows" ? "firebase.cmd" : "firebase";
+const localFirebasePath = new URL(`../ritu/node_modules/.bin/${firebaseBin}`, import.meta.url);
+let executable = "firebase";
+
+try {
+  const stat = await Deno.stat(localFirebasePath);
+  if (stat.isFile) {
+    executable = fromFileUrl(localFirebasePath);
+    console.log(`[emulator] Using local firebase: ${executable}`);
+  }
+} catch {
+  console.log("[emulator] Using global firebase");
+}
+
+const command = new Deno.Command(executable, {
   args: ["emulators:start", "--only", "firestore,auth"],
   cwd,
   stdin: "inherit",
@@ -13,7 +27,11 @@ const command = new Deno.Command("firebase", {
 
 const child = command.spawn();
 
-const signals: Deno.Signal[] = ["SIGINT", "SIGTERM"];
+const signals: Deno.Signal[] = ["SIGINT"];
+if (Deno.build.os !== "windows") {
+  signals.push("SIGTERM");
+}
+
 let shuttingDown = false;
 
 async function shutdown(signal: Deno.Signal) {

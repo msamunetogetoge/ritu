@@ -23,7 +23,6 @@ import { app } from "../../lib/firebase.ts";
 import {
   formatIsoDate,
   normalizeRoutineTitle,
-  toFirestoreSchedule,
 } from "./helpers.ts";
 import type {
   CompletionRecord,
@@ -112,9 +111,9 @@ async function createRoutine(
     userId,
     title: normalizeRoutineTitle(input.title),
     description: null,
-    schedule: toFirestoreSchedule(input.scheduledTime),
+    schedule: input.schedule ?? null,
     autoShare: Boolean(input.autoShare),
-    visibility: "private",
+    visibility: input.visibility,
     currentStreak: 0,
     maxStreak: 0,
     createdAt: serverTimestamp(),
@@ -138,8 +137,11 @@ async function updateRoutine(
   if (input.autoShare !== undefined) {
     updateData.autoShare = Boolean(input.autoShare);
   }
-  if (input.scheduledTime !== undefined) {
-    updateData.schedule = toFirestoreSchedule(input.scheduledTime);
+  if (input.visibility !== undefined) {
+    updateData.visibility = input.visibility;
+  }
+  if (input.schedule !== undefined) {
+    updateData.schedule = input.schedule;
   }
   await updateDoc(ref, updateData);
 }

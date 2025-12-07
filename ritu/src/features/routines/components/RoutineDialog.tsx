@@ -129,6 +129,31 @@ export function RoutineDialog(
           </label>
         </div>
 
+        <div className="field">
+          <label htmlFor="routine-visibility">公開範囲</label>
+          <div className="select-wrapper">
+            <select
+              id="routine-visibility"
+              name="visibility"
+              value={formValue.visibility}
+              onChange={(event) => {
+                const value = event.currentTarget.value as
+                  | "private"
+                  | "public"
+                  | "followers";
+                setFormValue((prev) => ({
+                  ...prev,
+                  visibility: value,
+                }));
+              }}
+            >
+              <option value="private">自分のみ (Private)</option>
+              <option value="followers">フォロワーのみ</option>
+              <option value="public">全体公開 (Public)</option>
+            </select>
+          </div>
+        </div>
+
         <div className="dialog-actions">
           <button
             type="button"
