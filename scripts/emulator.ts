@@ -15,6 +15,10 @@ try {
   }
 } catch {
   console.log("[emulator] Using global firebase");
+  // Review feedback: Ensure fallback uses .cmd on Windows
+  if (Deno.build.os === "windows" && executable === "firebase") {
+    executable = "firebase.cmd";
+  }
 }
 
 const command = new Deno.Command(executable, {

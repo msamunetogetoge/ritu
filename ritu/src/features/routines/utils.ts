@@ -33,3 +33,16 @@ export function normalizeTime(input: string | null): string | undefined {
   const trimmed = input.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
+
+export function toFirestoreSchedule(
+  scheduledTime?: string,
+): Record<string, unknown> {
+  const schedule: Record<string, unknown> = { type: "daily" };
+  if (scheduledTime) {
+    const trimmed = scheduledTime.trim();
+    if (trimmed.length > 0) {
+      schedule.time = trimmed;
+    }
+  }
+  return schedule;
+}

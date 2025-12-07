@@ -12,7 +12,7 @@ import type {
   RoutineRecord,
 } from "../../../services/routine-service.ts";
 import type { Routine, RoutineDialogValue } from "../types.ts";
-import { extractScheduledTime, normalizeDialogValue } from "../utils.ts";
+import { extractScheduledTime, normalizeDialogValue, toFirestoreSchedule } from "../utils.ts";
 
 interface CompletionSummary {
   readonly total: number;
@@ -44,12 +44,14 @@ export function useTodayRoutines(
   user: { readonly uid: string } | null,
   isoDate: string,
 ): UseTodayRoutinesResult {
-  const [routineRecords, setRoutineRecords] = useState<RoutineRecord[]>([]);
+  const [routineRecords, setRoutineRecords] = useState<
+    ReadonlyArray<RoutineRecord>
+  >([]);
   const [deletedRoutineRecords, setDeletedRoutineRecords] = useState<
-    RoutineRecord[]
+    ReadonlyArray<RoutineRecord>
   >([]);
   const [completionRecords, setCompletionRecords] = useState<
-    CompletionRecord[]
+    ReadonlyArray<CompletionRecord>
   >([]);
   const [dataError, setDataError] = useState<string | null>(null);
   const [routinesLoading, setRoutinesLoading] = useState(false);
@@ -153,9 +155,7 @@ export function useTodayRoutines(
     try {
       await createRoutine(user.uid, {
         title: normalized.title,
-        schedule: normalized.scheduledTime
-          ? { type: "daily", time: normalized.scheduledTime }
-          : null,
+        schedule: toFirestoreSchedule(normalized.scheduledTime),
         autoShare: normalized.autoShare,
         visibility: normalized.visibility,
       });
@@ -171,9 +171,7 @@ export function useTodayRoutines(
       try {
         await updateRoutine(id, {
           title: normalized.title,
-          schedule: normalized.scheduledTime
-            ? { type: "daily", time: normalized.scheduledTime }
-            : null,
+          schedule: toFirestoreSchedule(normalized.scheduledTime),
           autoShare: normalized.autoShare,
           visibility: normalized.visibility,
         });
