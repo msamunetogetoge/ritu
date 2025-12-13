@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import type { AppEnv } from "./middlewares/auth.ts";
 import { authMiddleware } from "./middlewares/auth.ts";
@@ -53,7 +53,7 @@ export function createApp(options: AppOptions = {}) {
 
   app.use("*", loggerMiddleware);
 
-  app.get("/v1/health", (c) => c.json({ status: "ok" }));
+  app.get("/v1/health", (c: Context) => c.json({ status: "ok" }));
 
   app.use("/v1/*", authMiddleware);
 
@@ -61,7 +61,7 @@ export function createApp(options: AppOptions = {}) {
   registerUserRoutes(app, userService);
   registerCommunityRoutes(app, communityService);
 
-  app.onError((err, c) => {
+  app.onError((err: Error, c: Context<AppEnv>) => {
     /* ドメインエラーはコード付きで返し、それ以外は500にフォールバック。 */
     if (err instanceof ServiceError) {
       return c.json({ message: err.message, code: err.code }, err.status);

@@ -1,7 +1,7 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler, Next } from "hono";
 
 /* Firebase検証の代わりにデバッグ用userId抽出を行う暫定ミドルウェア。 */
-export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
+export const authMiddleware: MiddlewareHandler<AppEnv> = async (c: Context<AppEnv>, next: Next) => {
   if (c.req.path === "/v1/health") {
     return await next();
   }

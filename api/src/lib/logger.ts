@@ -5,7 +5,7 @@ export async function setupLogger() {
   await log.setup({
     handlers: {
       console: new log.ConsoleHandler("DEBUG", {
-        formatter: (record) => {
+        formatter: (record: log.LogRecord) => {
           let levelInfo = `[${record.levelName}]`;
           if (record.level === log.LogLevels.INFO) {
             levelInfo = blue(levelInfo);

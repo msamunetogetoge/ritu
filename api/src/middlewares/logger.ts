@@ -1,8 +1,8 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler, Next } from "hono";
 import { getLogger } from "../lib/logger.ts";
 import type { AppEnv } from "./auth.ts";
 
-export const loggerMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
+export const loggerMiddleware: MiddlewareHandler<AppEnv> = async (c: Context<AppEnv>, next: Next) => {
   const start = Date.now();
   await next();
   const ms = Date.now() - start;
