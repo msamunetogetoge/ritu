@@ -40,6 +40,14 @@ export class InMemoryRoutineRepository implements RoutineRepository {
     });
   }
 
+  countByUser(userId: string): Promise<number> {
+    return Promise.resolve(
+      Array.from(this.#routines.values()).filter(
+        (r) => r.userId === userId && !r.deletedAt,
+      ).length,
+    );
+  }
+
   getById(userId: string, routineId: string): Promise<Routine | null> {
     const routine = this.#routines.get(routineId);
     if (!routine || routine.userId !== userId) {
@@ -207,5 +215,161 @@ export class InMemoryRoutineRepository implements RoutineRepository {
 
   reset() {
     this.#routines.clear();
+  }
+}
+
+import type { User, UserUpdateInput } from "../types.ts";
+import type { UserRepository } from "./user-repository.ts";
+
+export class InMemoryUserRepository implements UserRepository {
+  #users = new Map<string, User>();
+
+  getById(id: string): Promise<User | null> {
+    const user = this.#users.get(id);
+    return Promise.resolve(user ? { ...user } : null);
+  }
+
+  create(id: string, data: Omit<User, "id" | "createdAt" | "updatedAt">): Promise<User> {
+    const now = new Date().toISOString();
+    const user: User = {
+      id,
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.#users.set(id, user);
+    return Promise.resolve({ ...user });
+  }
+
+  update(id: string, data: UserUpdateInput): Promise<User | null> {
+    const user = this.#users.get(id);
+    if (!user) return Promise.resolve(null);
+
+    if (data.displayName !== undefined) user.displayName = data.displayName;
+    if (data.photoUrl !== undefined) user.photoUrl = data.photoUrl;
+    if (data.isPremium !== undefined) user.isPremium = data.isPremium;
+    if (data.notificationSettings !== undefined) user.notificationSettings = data.notificationSettings;
+    
+    user.updatedAt = new Date().toISOString();
+    this.#users.set(id, user);
+    return Promise.resolve({ ...user });
+  }
+
+  listByScheduleTime(time: string): Promise<User[]> {
+    const users = Array.from(this.#users.values()).filter(
+      (u) => u.notificationSettings?.scheduleTime === time
+    );
+    return Promise.resolve(users.map((u) => ({ ...u })));
+  }
+  
+  reset() {
+    this.#users.clear();
+  }
+}
+
+import type { Comment, CommentCreateInput, Like, Post, PostCreateInput } from "../types.ts";
+import type { CommunityRepository } from "./community-repository.ts";
+
+export class InMemoryCommunityRepository implements CommunityRepository {
+  #posts = new Map<string, Post>();
+  #likes = new Map<string, Like>(); // Key: userId_postId
+  #comments = new Map<string, Comment>();
+
+  createPost(userId: string, input: PostCreateInput): Promise<Post> {
+    const now = new Date().toISOString();
+    const post: Post = {
+      id: crypto.randomUUID(),
+      userId,
+      routineId: input.routineId,
+      text: input.text ?? "",
+      likeCount: 0,
+      commentCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.#posts.set(post.id, post);
+    return Promise.resolve({ ...post });
+  }
+
+  listPosts(limit = 20): Promise<Post[]> {
+    const all = Array.from(this.#posts.values())
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return Promise.resolve(all.slice(0, limit));
+  }
+
+  getPost(postId: string): Promise<Post | null> {
+    const post = this.#posts.get(postId);
+    return Promise.resolve(post ? { ...post } : null);
+  }
+
+  addLike(userId: string, postId: string): Promise<Like | null> {
+    const post = this.#posts.get(postId);
+    if (!post) return Promise.resolve(null);
+    
+    const id = `${userId}_${postId}`;
+    if (this.#likes.has(id)) {
+      return Promise.resolve({ ...this.#likes.get(id)! });
+    }
+    
+    const now = new Date().toISOString();
+    const like: Like = {
+      id: userId, // Match Firestore implementation (id is userId in subcol)
+      // But in flat map I need unique key.
+      postId,
+      userId,
+      createdAt: now,
+    };
+    this.#likes.set(id, like);
+    
+    post.likeCount++;
+    this.#posts.set(postId, post);
+    
+    return Promise.resolve({ ...like });
+  }
+
+  removeLike(userId: string, postId: string): Promise<boolean> {
+    const id = `${userId}_${postId}`;
+    const post = this.#posts.get(postId);
+    if (this.#likes.delete(id)) {
+      if (post) {
+        post.likeCount--;
+        this.#posts.set(postId, post);
+      }
+      return Promise.resolve(true);
+    }
+    return Promise.resolve(false);
+  }
+
+  getLike(userId: string, postId: string): Promise<Like | null> {
+    const id = `${userId}_${postId}`;
+    const like = this.#likes.get(id);
+    return Promise.resolve(like ? { ...like } : null);
+  }
+
+  addComment(userId: string, postId: string, input: CommentCreateInput): Promise<Comment | null> {
+    const post = this.#posts.get(postId);
+    if (!post) return Promise.resolve(null);
+
+    const now = new Date().toISOString();
+    const comment: Comment = {
+      id: crypto.randomUUID(),
+      postId,
+      userId,
+      text: input.text,
+      createdAt: now,
+    };
+    this.#comments.set(comment.id, comment);
+    
+    post.commentCount++;
+    this.#posts.set(postId, post);
+
+    return Promise.resolve({ ...comment });
+  }
+
+  listComments(postId: string): Promise<Comment[]> {
+    const all = Array.from(this.#comments.values())
+      .filter((c) => c.postId === postId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return Promise.resolve(all);
   }
 }

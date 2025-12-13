@@ -8,6 +8,7 @@ import type {
   RoutineUpdateInput,
 } from "../types.ts";
 import type { RoutineRepository } from "../repositories/routine-repository.ts";
+import type { UserRepository } from "../repositories/user-repository.ts";
 import { notFound, ServiceError, validationError } from "./errors.ts";
 
 /* ソフトデリート復元可能期間（7日間）をミリ秒で表現。 */
@@ -17,14 +18,17 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface RoutineServiceOptions {
   repository: RoutineRepository;
+  userRepository: UserRepository;
 }
 
 /* RoutineServiceはアプリケーションルールを実装し、リポジトリ越しに永続化層を操作する。 */
 export class RoutineService {
   #repository: RoutineRepository;
+  #userRepository: UserRepository;
 
   constructor(options: RoutineServiceOptions) {
     this.#repository = options.repository;
+    this.#userRepository = options.userRepository;
   }
 
   listRoutines(
@@ -52,6 +56,18 @@ export class RoutineService {
     if (!input.title || input.title.trim().length === 0) {
       throw validationError("title is required");
     }
+
+    const user = await this.#userRepository.getById(userId);
+    // If user is not found, we might assume free plan or error. Assuming free.
+    const isPremium = user?.isPremium ?? false;
+
+    if (!isPremium) {
+      const count = await this.#repository.countByUser(userId);
+      if (count >= 2) {
+        throw validationError("Free plan limit reached (2 routines). Upgrade to Premium to create more.");
+      }
+    }
+
     const schedule = input.schedule ?? {};
     return await this.#repository.create(userId, {
       title: input.title.trim(),
