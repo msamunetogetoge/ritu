@@ -275,6 +275,11 @@ async function authHeaders(): Promise<HeadersInit> {
 }
 
 async function currentAuthToken(): Promise<string | null> {
+  const useMock = import.meta.env.VITE_USE_MOCK_AUTH === "true";
+  if (useMock) {
+    return "mock-token";
+  }
+
   const { auth } = await import("../../lib/firebase.ts");
   const currentUser = auth.currentUser;
   if (!currentUser) {
