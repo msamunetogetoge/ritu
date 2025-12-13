@@ -1,11 +1,12 @@
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/assert_equals.ts";
+import { assertEquals } from "jsr:@std/assert";
 import { createApp } from "../app.ts";
-import { InMemoryRoutineRepository } from "../repositories/in-memory.ts";
+import { InMemoryRoutineRepository, InMemoryUserRepository } from "../repositories/in-memory.ts";
 import { RoutineService } from "../services/routine-service.ts";
 
 function createTestApp() {
   const repository = new InMemoryRoutineRepository();
-  const routineService = new RoutineService({ repository });
+  const userRepository = new InMemoryUserRepository();
+  const routineService = new RoutineService({ repository, userRepository });
   const app = createApp({ routineService });
   return { app, repository };
 }
