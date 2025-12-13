@@ -74,7 +74,6 @@ export interface NotificationSettings {
   lineUserId?: string | null;
   scheduleTime?: string; // HH:mm
 }
-
 /* User represents a user profile in the system. */
 export interface User {
   id: string; // auth.uid

@@ -34,7 +34,11 @@ export function createApp(options: AppOptions = {}) {
   const communityRepo = options.communityRepository ?? createDefaultCommunityRepository();
 
   const routineService = options.routineService ??
+<<<<<<< HEAD
     new RoutineService({ repository: routineRepo, userRepository: userRepo });
+=======
+    new RoutineService({ repository: routineRepo });
+>>>>>>> origin/feature/phase2-community
   const userService = options.userService ??
     new UserService({ repository: userRepo });
   const communityService = options.communityService ??

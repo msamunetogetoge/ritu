@@ -106,7 +106,6 @@ export class FirestoreUserRepository implements UserRepository {
       .filter((doc): doc is FirestoreDocument => !!doc)
       .map((doc) => this.#toUser(doc));
   }
-
   #toUser(doc: FirestoreDocument): User {
     const fields = doc.fields ?? {};
     return {
