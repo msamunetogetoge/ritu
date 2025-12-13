@@ -96,6 +96,47 @@ export class FirestoreRoutineRepository implements RoutineRepository {
     return { items, page, limit, total };
   }
 
+  async countByUser(userId: string): Promise<number> {
+    const where = {
+      compositeFilter: {
+        op: "AND",
+        filters: [
+          {
+            fieldFilter: {
+              field: { fieldPath: "userId" },
+              op: "EQUAL",
+              value: { stringValue: userId },
+            },
+          },
+          {
+            fieldFilter: {
+              field: { fieldPath: "deletedAt" },
+              op: "EQUAL",
+              value: { nullValue: null },
+            },
+          },
+        ],
+      },
+    };
+
+    const [aggregation] = await this.#client.runAggregationQuery({
+      structuredAggregationQuery: {
+        aggregations: [{
+          alias: "total",
+          count: {},
+        }],
+        structuredQuery: {
+          from: [{ collectionId: ROUTINE_COLLECTION }],
+          where,
+        },
+      },
+    });
+    return parseInt(
+      aggregation?.result?.aggregateFields?.total?.integerValue ?? "0",
+      10,
+    );
+  }
+
   async getById(userId: string, routineId: string): Promise<Routine | null> {
     try {
       const doc = await this.#client.getDocument(
