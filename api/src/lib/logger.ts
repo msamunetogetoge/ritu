@@ -1,5 +1,5 @@
-import * as log from "std/log";
-import { blue, red, yellow } from "std/fmt";
+import * as log from "@std/log";
+import { blue, red, yellow } from "@std/fmt/colors";
 
 export async function setupLogger() {
   await log.setup({

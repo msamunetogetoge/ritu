@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { AppEnv } from "../middlewares/auth.ts";
 import { type UserService } from "../services/user-service.ts";
 import type { UserUpdateInput } from "../types.ts";
 
 export function registerUserRoutes(app: Hono<AppEnv>, service: UserService) {
-  app.get("/v1/users/me", async (c) => {
+  app.get("/v1/users/me", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     try {
       const user = await service.getMe(userId);
@@ -21,7 +21,7 @@ export function registerUserRoutes(app: Hono<AppEnv>, service: UserService) {
     }
   });
 
-  app.patch("/v1/users/me", async (c) => {
+  app.patch("/v1/users/me", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const body = await c.req.json<UserUpdateInput>();
     const user = await service.updateMe(userId, body);

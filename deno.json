@@ -12,5 +12,10 @@
       "scripts/",
       "deno.json"
     ]
+  },
+  "imports": {
+    "@std/fmt": "jsr:@std/fmt@^1.0.8",
+    "@std/log": "jsr:@std/log@^0.224.14",
+    "hono": "npm:hono@^4.11.0"
   }
 }

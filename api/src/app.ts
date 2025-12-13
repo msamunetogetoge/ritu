@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { cors } from "hono/cors";
 import type { AppEnv } from "./middlewares/auth.ts";
 import { authMiddleware } from "./middlewares/auth.ts";
@@ -34,11 +35,7 @@ export function createApp(options: AppOptions = {}) {
   const communityRepo = options.communityRepository ?? createDefaultCommunityRepository();
 
   const routineService = options.routineService ??
-<<<<<<< HEAD
     new RoutineService({ repository: routineRepo, userRepository: userRepo });
-=======
-    new RoutineService({ repository: routineRepo });
->>>>>>> origin/feature/phase2-community
   const userService = options.userService ??
     new UserService({ repository: userRepo });
   const communityService = options.communityService ??
@@ -68,7 +65,7 @@ export function createApp(options: AppOptions = {}) {
   app.onError((err: Error, c: Context<AppEnv>) => {
     /* ドメインエラーはコード付きで返し、それ以外は500にフォールバック。 */
     if (err instanceof ServiceError) {
-      return c.json({ message: err.message, code: err.code }, err.status);
+      return c.json({ message: err.message, code: err.code }, err.status as ContentfulStatusCode);
     }
     console.error(err);
     return c.json({ message: "internal server error" }, 500);
