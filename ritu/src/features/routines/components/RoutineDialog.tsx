@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { RoutineDialogValue } from "../types.ts";
 import { normalizeDialogValue } from "../utils.ts";
+import { useFeatureFlags } from "../../../context/FeatureFlagContext.tsx";
 
 interface RoutineDialogProps {
   readonly mode: "create" | "edit";
@@ -17,6 +18,7 @@ export function RoutineDialog(
 ): JSX.Element | null {
   const [formValue, setFormValue] = useState<RoutineDialogValue>(initialValue);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const { isEnabled } = useFeatureFlags();
 
   useEffect(() => {
     if (open) {
@@ -112,47 +114,51 @@ export function RoutineDialog(
           <p className="hint">入力すると Today のリマインドに表示されます。</p>
         </div>
 
-        <div className="checkbox-row">
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={formValue.autoShare}
-              onChange={(event) => {
-                const { checked } = event.currentTarget;
-                setFormValue((prev) => ({
-                  ...prev,
-                  autoShare: checked,
-                }));
-              }}
-            />
-            自動共有をオンにする
-          </label>
-        </div>
+        {isEnabled("community") && (
+          <>
+            <div className="checkbox-row">
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={formValue.autoShare}
+                  onChange={(event) => {
+                    const { checked } = event.currentTarget;
+                    setFormValue((prev) => ({
+                      ...prev,
+                      autoShare: checked,
+                    }));
+                  }}
+                />
+                自動共有をオンにする
+              </label>
+            </div>
 
-        <div className="field">
-          <label htmlFor="routine-visibility">公開範囲</label>
-          <div className="select-wrapper">
-            <select
-              id="routine-visibility"
-              name="visibility"
-              value={formValue.visibility}
-              onChange={(event) => {
-                const value = event.currentTarget.value as
-                  | "private"
-                  | "public"
-                  | "followers";
-                setFormValue((prev) => ({
-                  ...prev,
-                  visibility: value,
-                }));
-              }}
-            >
-              <option value="private">自分のみ (Private)</option>
-              <option value="followers">フォロワーのみ</option>
-              <option value="public">全体公開 (Public)</option>
-            </select>
-          </div>
-        </div>
+            <div className="field">
+              <label htmlFor="routine-visibility">公開範囲</label>
+              <div className="select-wrapper">
+                <select
+                  id="routine-visibility"
+                  name="visibility"
+                  value={formValue.visibility}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value as
+                      | "private"
+                      | "public"
+                      | "followers";
+                    setFormValue((prev) => ({
+                      ...prev,
+                      visibility: value,
+                    }));
+                  }}
+                >
+                  <option value="private">自分のみ (Private)</option>
+                  <option value="followers">フォロワーのみ</option>
+                  <option value="public">全体公開 (Public)</option>
+                </select>
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="dialog-actions">
           <button
