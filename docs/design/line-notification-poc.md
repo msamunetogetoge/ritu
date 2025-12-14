@@ -64,6 +64,8 @@ interface Routine {
 - `FIREBASE_SERVICE_ACCOUNT_JSON`: Firestore接続用サービスアカウントキー (JSON文字列)。
   - または `GOOGLE_APPLICATION_CREDENTIALS` (ファイルパス)。
 - `FIRESTORE_PROJECT_ID`: FirebaseプロジェクトID。
+- `LINE_NOTIFICATION_TO` (任意): 配信先を強制するテスト用ID。  
+  `ROUTINE_REPOSITORY=memory` のときは自動送信せず、ログに通知対象を出すだけの手動トリガーモードになる。
 
 ## セキュリティ・制約事項
 - `NotificationWorker` はサーバーサイドでのみ動作し、一般ユーザーからの直接アクセスは遮断されるべきである（現状の実装に準拠）。

@@ -4,7 +4,11 @@ import { FirestoreClient } from "./src/lib/firestore-client.ts";
 import { FirestoreRoutineRepository } from "./src/repositories/firestore.ts";
 import { FirestoreUserRepository } from "./src/repositories/user-repository.ts";
 import { FirestoreCommunityRepository } from "./src/repositories/community-repository.ts";
-import { InMemoryRoutineRepository, InMemoryUserRepository, InMemoryCommunityRepository } from "./src/repositories/in-memory.ts";
+import {
+  InMemoryCommunityRepository,
+  InMemoryRoutineRepository,
+  InMemoryUserRepository,
+} from "./src/repositories/in-memory.ts";
 import { LineService } from "./src/services/line-service.ts";
 import { NotificationWorker } from "./src/services/notification-worker.ts";
 import { RoutineService } from "./src/services/routine-service.ts";
@@ -44,15 +48,13 @@ const client = createFirestoreClient();
 // Initialize Repositories
 const forceMemory = Deno.env.get("ROUTINE_REPOSITORY") === "memory";
 
-const routineRepo = (!forceMemory && client) 
-  ? new FirestoreRoutineRepository({ client }) 
+const routineRepo = (!forceMemory && client)
+  ? new FirestoreRoutineRepository({ client })
   : new InMemoryRoutineRepository();
 
-const userRepo = (client) 
-  ? new FirestoreUserRepository({ client }) 
-  : new InMemoryUserRepository();
-  
-const communityRepo = (client)
+const userRepo = client ? new FirestoreUserRepository({ client }) : new InMemoryUserRepository();
+
+const communityRepo = client
   ? new FirestoreCommunityRepository({ client })
   : new InMemoryCommunityRepository();
 
@@ -64,7 +66,9 @@ const communityService = new CommunityService({ repository: communityRepo });
 // Initialize Notification Worker
 const lineChannelAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "";
 const lineService = new LineService(lineChannelAccessToken);
-const notificationWorker = new NotificationWorker(userRepo, routineRepo, lineService);
+const notificationWorker = new NotificationWorker(userRepo, routineRepo, lineService, {
+  manualTrigger: forceMemory,
+});
 
 // Start Worker (only if allowed or in specific env? For now always)
 notificationWorker.start();
