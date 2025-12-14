@@ -13,8 +13,7 @@ interface RoutineDialogProps {
 }
 
 export function RoutineDialog(
-  { mode, open, initialValue, submitting, onSubmit, onClose }:
-    RoutineDialogProps,
+  { mode, open, initialValue, submitting, onSubmit, onClose }: RoutineDialogProps,
 ): JSX.Element | null {
   const [formValue, setFormValue] = useState<RoutineDialogValue>(initialValue);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -108,10 +107,30 @@ export function RoutineDialog(
               setFormValue((prev) => ({
                 ...prev,
                 scheduledTime: value,
+                notify: value ? prev.notify : false,
               }));
             }}
           />
           <p className="hint">入力すると Today のリマインドに表示されます。</p>
+        </div>
+
+        <div className="checkbox-row">
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={Boolean(formValue.notify)}
+              onChange={(event) => {
+                const { checked } = event.currentTarget;
+                setFormValue((prev) => ({
+                  ...prev,
+                  notify: checked,
+                }));
+              }}
+              disabled={!formValue.scheduledTime}
+            />
+            LINE通知を受け取る
+          </label>
+          {!formValue.scheduledTime && <p className="hint">通知するには時刻を設定してください。</p>}
         </div>
 
         {isEnabled("community") && (
@@ -174,11 +193,7 @@ export function RoutineDialog(
             className="dialog-button primary"
             disabled={submitting}
           >
-            {submitting
-              ? "保存中..."
-              : mode === "create"
-              ? "追加する"
-              : "更新する"}
+            {submitting ? "保存中..." : mode === "create" ? "追加する" : "更新する"}
           </button>
         </div>
       </form>

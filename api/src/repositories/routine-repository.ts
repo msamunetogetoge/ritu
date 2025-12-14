@@ -48,4 +48,5 @@ export interface RoutineRepository {
     routineId: string,
     date: string,
   ): Promise<boolean>;
+  listByScheduleTime(time: string): Promise<Routine[]>;
 }

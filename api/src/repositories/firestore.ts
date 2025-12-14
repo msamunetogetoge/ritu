@@ -399,14 +399,54 @@ export class FirestoreRoutineRepository implements RoutineRepository {
     }
   }
 
+  async listByScheduleTime(time: string): Promise<Routine[]> {
+    const responses = await this.#client.runQuery({
+      structuredQuery: {
+        from: [{ collectionId: ROUTINE_COLLECTION }],
+        where: {
+          compositeFilter: {
+            op: "AND",
+            filters: [
+              {
+                fieldFilter: {
+                  field: { fieldPath: "schedule.notify" },
+                  op: "EQUAL",
+                  value: { booleanValue: true },
+                },
+              },
+              {
+                fieldFilter: {
+                  field: { fieldPath: "schedule.time" },
+                  op: "EQUAL",
+                  value: { stringValue: time },
+                },
+              },
+              {
+                fieldFilter: {
+                  field: { fieldPath: "deletedAt" },
+                  op: "EQUAL",
+                  value: { nullValue: null },
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    return responses
+      .map((entry) => entry.document)
+      .filter((doc): doc is FirestoreDocument => Boolean(doc))
+      .map((doc) => this.#toRoutine(doc));
+  }
+
   #toRoutine(doc: FirestoreDocument): Routine {
     const fields = doc.fields ?? {};
     return {
       id: extractDocumentId(doc),
       userId: decodeValue(fields.userId) as string,
       title: decodeValue(fields.title) as string,
-      description:
-        (decodeValue(fields.description) as string | null | undefined) ?? null,
+      description: (decodeValue(fields.description) as string | null | undefined) ?? null,
       schedule: (decodeValue(fields.schedule) as Record<string, unknown>) ?? {},
       autoShare: Boolean(decodeValue(fields.autoShare)),
       visibility: (decodeValue(fields.visibility) as Routine["visibility"]) ??

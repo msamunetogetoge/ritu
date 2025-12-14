@@ -21,6 +21,7 @@ export function normalizeDialogValue(
   return {
     title: value.title.trim(),
     scheduledTime: normalizeTime(value.scheduledTime ?? null),
+    notify: value.notify ?? false,
     autoShare: value.autoShare,
     visibility: value.visibility,
   };
@@ -36,6 +37,7 @@ export function normalizeTime(input: string | null): string | undefined {
 
 export function toFirestoreSchedule(
   scheduledTime?: string,
+  notify?: boolean,
 ): Record<string, unknown> {
   const schedule: Record<string, unknown> = { type: "daily" };
   if (scheduledTime) {
@@ -43,6 +45,9 @@ export function toFirestoreSchedule(
     if (trimmed.length > 0) {
       schedule.time = trimmed;
     }
+  }
+  if (notify !== undefined) {
+    schedule.notify = notify;
   }
   return schedule;
 }

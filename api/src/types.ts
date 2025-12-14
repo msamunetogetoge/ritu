@@ -4,6 +4,8 @@ export type Visibility = "private" | "public" | "followers";
 /* RoutineScheduleはOpenAPI準拠の柔軟なスケジュール定義を保持する。 */
 export interface RoutineSchedule {
   [key: string]: unknown;
+  time?: string; // HH:mm
+  notify?: boolean;
 }
 
 /* RoutineはFirestoreに保存されるルーティーン本体を表し、APIレスポンスとも一致する。 */

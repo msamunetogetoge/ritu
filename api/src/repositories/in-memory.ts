@@ -24,9 +24,7 @@ export class InMemoryRoutineRepository implements RoutineRepository {
     const page = Math.max(1, pagination.page);
     const limit = Math.min(Math.max(1, pagination.limit), 100);
     const all = Array.from(this.#routines.values())
-      .filter((routine) =>
-        routine.userId === userId && routine.deletedAt === null
-      )
+      .filter((routine) => routine.userId === userId && routine.deletedAt === null)
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const start = (page - 1) * limit;
     const items = all.slice(start, start + limit).map((routine) => ({
@@ -208,6 +206,17 @@ export class InMemoryRoutineRepository implements RoutineRepository {
     return Promise.resolve(removed);
   }
 
+  listByScheduleTime(time: string): Promise<Routine[]> {
+    const routines = Array.from(this.#routines.values())
+      .filter((r) =>
+        r.deletedAt === null &&
+        (r.schedule as { time?: string; notify?: boolean }).notify === true &&
+        (r.schedule as { time?: string }).time === time
+      )
+      .map((r) => ({ ...r }));
+    return Promise.resolve(routines);
+  }
+
   setRoutine(routine: Routine) {
     const stored: StoredRoutine = { ...routine, completions: new Map() };
     this.#routines.set(routine.id, stored);
@@ -248,8 +257,10 @@ export class InMemoryUserRepository implements UserRepository {
     if (data.displayName !== undefined) user.displayName = data.displayName;
     if (data.photoUrl !== undefined) user.photoUrl = data.photoUrl;
     if (data.isPremium !== undefined) user.isPremium = data.isPremium;
-    if (data.notificationSettings !== undefined) user.notificationSettings = data.notificationSettings;
-    
+    if (data.notificationSettings !== undefined) {
+      user.notificationSettings = data.notificationSettings;
+    }
+
     user.updatedAt = new Date().toISOString();
     this.#users.set(id, user);
     return Promise.resolve({ ...user });
@@ -257,11 +268,11 @@ export class InMemoryUserRepository implements UserRepository {
 
   listByScheduleTime(time: string): Promise<User[]> {
     const users = Array.from(this.#users.values()).filter(
-      (u) => u.notificationSettings?.scheduleTime === time
+      (u) => u.notificationSettings?.scheduleTime === time,
     );
     return Promise.resolve(users.map((u) => ({ ...u })));
   }
-  
+
   reset() {
     this.#users.clear();
   }
@@ -305,12 +316,12 @@ export class InMemoryCommunityRepository implements CommunityRepository {
   addLike(userId: string, postId: string): Promise<Like | null> {
     const post = this.#posts.get(postId);
     if (!post) return Promise.resolve(null);
-    
+
     const id = `${userId}_${postId}`;
     if (this.#likes.has(id)) {
       return Promise.resolve({ ...this.#likes.get(id)! });
     }
-    
+
     const now = new Date().toISOString();
     const like: Like = {
       id: userId, // Match Firestore implementation (id is userId in subcol)
@@ -320,10 +331,10 @@ export class InMemoryCommunityRepository implements CommunityRepository {
       createdAt: now,
     };
     this.#likes.set(id, like);
-    
+
     post.likeCount++;
     this.#posts.set(postId, post);
-    
+
     return Promise.resolve({ ...like });
   }
 
@@ -359,7 +370,7 @@ export class InMemoryCommunityRepository implements CommunityRepository {
       createdAt: now,
     };
     this.#comments.set(comment.id, comment);
-    
+
     post.commentCount++;
     this.#posts.set(postId, post);
 

@@ -12,6 +12,7 @@ export interface Routine {
 export interface RoutineDialogValue {
   readonly title: string;
   readonly scheduledTime?: string;
+  readonly notify?: boolean;
   readonly autoShare: boolean;
   readonly visibility: "private" | "public" | "followers";
 }

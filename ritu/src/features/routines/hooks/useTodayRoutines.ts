@@ -7,10 +7,7 @@ import {
   subscribeTodayCompletions,
   updateRoutine,
 } from "../../../services/routine-service.ts";
-import type {
-  CompletionRecord,
-  RoutineRecord,
-} from "../../../services/routine-service.ts";
+import type { CompletionRecord, RoutineRecord } from "../../../services/routine-service.ts";
 import type { Routine, RoutineDialogValue } from "../types.ts";
 import { extractScheduledTime, normalizeDialogValue, toFirestoreSchedule } from "../utils.ts";
 
@@ -128,17 +125,13 @@ export function useTodayRoutines(
       autoShare: record.autoShare,
       scheduledTime: extractScheduledTime(record.schedule),
       status: completionSet.has(record.id) ? "complete" : "pending",
-      streakLabel: record.currentStreak > 0
-        ? `${record.currentStreak}日継続中`
-        : undefined,
+      streakLabel: record.currentStreak > 0 ? `${record.currentStreak}日継続中` : undefined,
     }));
   }, [routineRecords, completionSet]);
 
   const completion = useMemo<CompletionSummary>(() => {
     const total = routines.length;
-    const completed = routines.filter((routine) =>
-      routine.status === "complete"
-    )
+    const completed = routines.filter((routine) => routine.status === "complete")
       .length;
     const rate = total === 0 ? 0 : Math.round((completed / total) * 100);
     return { total, completed, rate };
@@ -155,7 +148,10 @@ export function useTodayRoutines(
     try {
       await createRoutine(user.uid, {
         title: normalized.title,
-        schedule: toFirestoreSchedule(normalized.scheduledTime),
+        schedule: toFirestoreSchedule(
+          normalized.scheduledTime,
+          normalized.notify ?? false,
+        ),
         autoShare: normalized.autoShare,
         visibility: normalized.visibility,
       });
@@ -171,7 +167,10 @@ export function useTodayRoutines(
       try {
         await updateRoutine(id, {
           title: normalized.title,
-          schedule: toFirestoreSchedule(normalized.scheduledTime),
+          schedule: toFirestoreSchedule(
+            normalized.scheduledTime,
+            normalized.notify ?? false,
+          ),
           autoShare: normalized.autoShare,
           visibility: normalized.visibility,
         });
