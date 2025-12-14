@@ -7,9 +7,16 @@ import {
   subscribeTodayCompletions,
   updateRoutine,
 } from "../../../services/routine-service.ts";
-import type { CompletionRecord, RoutineRecord } from "../../../services/routine-service.ts";
+import type {
+  CompletionRecord,
+  RoutineRecord,
+} from "../../../services/routine-service.ts";
 import type { Routine, RoutineDialogValue } from "../types.ts";
-import { extractScheduledTime, normalizeDialogValue, toFirestoreSchedule } from "../utils.ts";
+import {
+  extractScheduledTime,
+  normalizeDialogValue,
+  toFirestoreSchedule,
+} from "../utils.ts";
 
 interface CompletionSummary {
   readonly total: number;
@@ -41,6 +48,7 @@ export function useTodayRoutines(
   user: { readonly uid: string } | null,
   isoDate: string,
 ): UseTodayRoutinesResult {
+  const userId = user?.uid;
   const [routineRecords, setRoutineRecords] = useState<
     ReadonlyArray<RoutineRecord>
   >([]);
@@ -67,11 +75,11 @@ export function useTodayRoutines(
   useEffect(() => {
     setRoutineRecords([]);
     setDeletedRoutineRecords([]);
-    if (!user) {
+    if (!userId) {
       return;
     }
     setRoutinesLoading(true);
-    const unsubscribe = subscribeRoutines(user.uid, {
+    const unsubscribe = subscribeRoutines(userId, {
       onData: (rows) => {
         setDataError(null);
         const active = rows.filter((row) => !row.deletedAt);
@@ -89,15 +97,15 @@ export function useTodayRoutines(
     return () => {
       unsubscribe();
     };
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     setCompletionRecords([]);
-    if (!user) {
+    if (!userId) {
       return;
     }
     setCompletionsLoading(true);
-    const unsubscribe = subscribeTodayCompletions(user.uid, isoDate, {
+    const unsubscribe = subscribeTodayCompletions(userId, isoDate, {
       onData: (rows) => {
         setCompletionRecords(rows);
         setCompletionsLoading(false);
@@ -111,7 +119,7 @@ export function useTodayRoutines(
     return () => {
       unsubscribe();
     };
-  }, [user, isoDate]);
+  }, [userId, isoDate]);
 
   const completionSet = useMemo(
     () => new Set(completionRecords.map((record) => record.routineId)),
@@ -125,13 +133,17 @@ export function useTodayRoutines(
       autoShare: record.autoShare,
       scheduledTime: extractScheduledTime(record.schedule),
       status: completionSet.has(record.id) ? "complete" : "pending",
-      streakLabel: record.currentStreak > 0 ? `${record.currentStreak}日継続中` : undefined,
+      streakLabel: record.currentStreak > 0
+        ? `${record.currentStreak}日継続中`
+        : undefined,
     }));
   }, [routineRecords, completionSet]);
 
   const completion = useMemo<CompletionSummary>(() => {
     const total = routines.length;
-    const completed = routines.filter((routine) => routine.status === "complete")
+    const completed = routines.filter((routine) =>
+      routine.status === "complete"
+    )
       .length;
     const rate = total === 0 ? 0 : Math.round((completed / total) * 100);
     return { total, completed, rate };

@@ -52,10 +52,18 @@ export class NotificationWorker {
         const target = this.#forcedRecipient ??
           (user?.notificationSettings?.lineEnabled ? user.notificationSettings.lineUserId : null);
         if (!target) {
+          console.info(
+            `[Notification] Skip user=${userId} (no lineEnabled/lineUserId, forced=${
+              Boolean(this.#forcedRecipient)
+            })`,
+          );
           continue;
         }
 
         for (const title of routineTitles) {
+          console.info(
+            `[Notification] Sending to user=${userId} target=${target} title="${title}" time=${time}`,
+          );
           await this.#lineService.sendPushMessage(
             target,
             `${title}の時間です！`,

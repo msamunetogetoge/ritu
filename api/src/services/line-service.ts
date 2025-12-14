@@ -31,5 +31,7 @@ export class LineService {
       console.error("Failed to send LINE message", res.status, body);
       throw new Error(`LINE API error: ${res.status}`);
     }
+
+    console.info(`[LINE] Sent push to ${userId}: "${text}"`);
   }
 }
