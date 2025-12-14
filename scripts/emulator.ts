@@ -1,10 +1,13 @@
-import { fromFileUrl } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { fromFileUrl } from "@std/path";
 
 const root = new URL("../", import.meta.url);
 const cwd = fromFileUrl(root);
 
 const firebaseBin = Deno.build.os === "windows" ? "firebase.cmd" : "firebase";
-const localFirebasePath = new URL(`../ritu/node_modules/.bin/${firebaseBin}`, import.meta.url);
+const localFirebasePath = new URL(
+  `../ritu/node_modules/.bin/${firebaseBin}`,
+  import.meta.url,
+);
 let executable = "firebase";
 
 try {

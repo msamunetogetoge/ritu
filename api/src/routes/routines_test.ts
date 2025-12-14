@@ -1,6 +1,9 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { createApp } from "../app.ts";
-import { InMemoryRoutineRepository, InMemoryUserRepository } from "../repositories/in-memory.ts";
+import {
+  InMemoryRoutineRepository,
+  InMemoryUserRepository,
+} from "../repositories/in-memory.ts";
 import { RoutineService } from "../services/routine-service.ts";
 
 function createTestApp() {

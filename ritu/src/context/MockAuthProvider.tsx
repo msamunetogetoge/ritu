@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { AuthContext } from "./AuthContextObject.ts";
 import type { User } from "firebase/auth";
 
@@ -9,7 +9,7 @@ const MOCK_USER: Partial<User> = {
   displayName: "Mock User",
   email: "mock@example.com",
   photoURL: null,
-  getIdToken: async () => "mock-token",
+  getIdToken: () => Promise.resolve("mock-token"),
   emailVerified: true,
   isAnonymous: false,
   metadata: {},
@@ -49,7 +49,9 @@ export function MockAuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut: signOutAction }}>
+    <AuthContext.Provider
+      value={{ user, loading, signIn, signOut: signOutAction }}
+    >
       {children}
     </AuthContext.Provider>
   );

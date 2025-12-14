@@ -1,4 +1,10 @@
-import type { Comment, CommentCreateInput, Like, Post, PostCreateInput } from "../types.ts";
+import type {
+  Comment,
+  CommentCreateInput,
+  Like,
+  Post,
+  PostCreateInput,
+} from "../types.ts";
 import type { CommunityRepository } from "../repositories/community-repository.ts";
 import { notFound, validationError } from "./errors.ts";
 
@@ -17,15 +23,18 @@ export class CommunityService {
     if (!input.routineId) {
       throw validationError("routineId is required");
     }
-    return this.#repository.createPost(userId, input);
+    return await this.#repository.createPost(userId, input);
   }
 
-  async getFeed(userId: string): Promise<Post[]> {
+  async getFeed(_userId: string): Promise<Post[]> {
     // For now, simple global feed. Future: personalize.
-    return this.#repository.listPosts(50);
+    return await this.#repository.listPosts(50);
   }
 
-  async toggleLike(userId: string, postId: string): Promise<{ liked: boolean; like?: Like }> {
+  async toggleLike(
+    userId: string,
+    postId: string,
+  ): Promise<{ liked: boolean; like?: Like }> {
     const existing = await this.#repository.getLike(userId, postId);
     if (existing) {
       const removed = await this.#repository.removeLike(userId, postId);
@@ -38,7 +47,11 @@ export class CommunityService {
     }
   }
 
-  async addComment(userId: string, postId: string, input: CommentCreateInput): Promise<Comment> {
+  async addComment(
+    userId: string,
+    postId: string,
+    input: CommentCreateInput,
+  ): Promise<Comment> {
     if (!input.text || input.text.trim().length === 0) {
       throw validationError("comment text required");
     }
@@ -48,6 +61,6 @@ export class CommunityService {
   }
 
   async listComments(postId: string): Promise<Comment[]> {
-    return this.#repository.listComments(postId);
+    return await this.#repository.listComments(postId);
   }
 }

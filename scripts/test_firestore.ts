@@ -1,4 +1,4 @@
-import { fromFileUrl } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { fromFileUrl } from "@std/path";
 
 const root = new URL("../", import.meta.url);
 const apiDir = fromFileUrl(new URL("api/", root));

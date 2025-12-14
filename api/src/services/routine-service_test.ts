@@ -1,5 +1,8 @@
-import { assertEquals, assertRejects } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { InMemoryRoutineRepository, InMemoryUserRepository } from "../repositories/in-memory.ts";
+import { assertEquals } from "@std/assert";
+import {
+  InMemoryRoutineRepository,
+  InMemoryUserRepository,
+} from "../repositories/in-memory.ts";
 import { calculateStreaks, RoutineService } from "./routine-service.ts";
 
 Deno.test("calculateStreaks returns zero when no dates", () => {
@@ -34,7 +37,10 @@ Deno.test("RoutineService create and restore flow", async () => {
   const userRepository = new InMemoryUserRepository();
   const service = new RoutineService({ repository, userRepository });
   const userId = "user-a";
-  await userRepository.create(userId, { displayName: "User A", photoUrl: null }); // Create user to enable routine creation (though logic assumes free if not found, explicit create is safer)
+  await userRepository.create(userId, {
+    displayName: "User A",
+    photoUrl: null,
+  }); // Create user to enable routine creation (though logic assumes free if not found, explicit create is safer)
 
   const created = await service.createRoutine(userId, {
     title: "朝ラン",
@@ -55,7 +61,10 @@ Deno.test("RoutineService completion lifecycle", async () => {
   const userRepository = new InMemoryUserRepository();
   const service = new RoutineService({ repository, userRepository });
   const userId = "user-b";
-  await userRepository.create(userId, { displayName: "User B", photoUrl: null });
+  await userRepository.create(userId, {
+    displayName: "User B",
+    photoUrl: null,
+  });
   const routine = await service.createRoutine(userId, {
     title: "読書",
     schedule: { type: "daily" },

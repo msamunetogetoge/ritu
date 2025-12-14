@@ -1,4 +1,4 @@
-import { create as createJwt } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
+import { create as createJwt } from "djwt";
 
 type FirestoreValue =
   | { stringValue: string }
