@@ -36,11 +36,24 @@ interface RestCompletion {
 export function createBackendGateway(
   options: BackendGatewayOptions,
 ): RoutineGateway {
+  let cachedRoutines: RoutineRecord[] = [];
+  const setCache = (routines: RoutineRecord[]) => {
+    cachedRoutines = routines;
+  };
+  const getCache = () => cachedRoutines;
+
   return {
     subscribeRoutines: (userId, subscribeOptions) =>
-      pollRoutines(userId, subscribeOptions, options),
+      pollRoutines(userId, subscribeOptions, options, setCache),
     subscribeTodayCompletions: (userId, isoDate, subscribeOptions) =>
-      pollCompletions(userId, isoDate, subscribeOptions, options),
+      pollCompletions(
+        userId,
+        isoDate,
+        subscribeOptions,
+        options,
+        getCache,
+        setCache,
+      ),
     createRoutine: (userId, input) => createRoutine(userId, input, options),
     updateRoutine: (routineId, input) =>
       updateRoutine(routineId, input, options),
@@ -68,6 +81,7 @@ function pollRoutines(
   _userId: string,
   options: SubscribeOptions<RoutineRecord>,
   gatewayOptions: BackendGatewayOptions,
+  setCache: (routines: RoutineRecord[]) => void,
 ): () => void {
   let stopped = false;
 
@@ -82,7 +96,9 @@ function pollRoutines(
       const json = await response.json() as {
         items: RestRoutine[];
       };
-      options.onData(json.items.map(convertRoutine));
+      const routines = json.items.map(convertRoutine);
+      setCache(routines);
+      options.onData(routines);
     } catch (error) {
       options.onError?.(error);
     }
@@ -103,26 +119,40 @@ function pollCompletions(
   isoDate: string,
   options: SubscribeOptions<CompletionRecord>,
   gatewayOptions: BackendGatewayOptions,
+  getCache: () => RoutineRecord[],
+  setCache: (routines: RoutineRecord[]) => void,
 ): () => void {
   let stopped = false;
 
   const fetchOnce = async () => {
     try {
-      const response = await fetch(
-        `${gatewayOptions.baseUrl}/routines?limit=200`,
-        { headers: await authHeaders() },
-      );
-      if (!response.ok) {
-        throw new Error(await response.text());
+      let routines = getCache();
+
+      if (!routines.length) {
+        const response = await fetch(
+          `${gatewayOptions.baseUrl}/routines?limit=200`,
+          { headers: await authHeaders() },
+        );
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        const json = await response.json() as { items: RestRoutine[] };
+        routines = json.items.map(convertRoutine);
+        setCache(routines);
       }
-      const json = await response.json() as { items: RestRoutine[] };
+
       const completions: CompletionRecord[] = [];
-      for (const routine of json.items) {
+      for (const routine of routines) {
         const res = await fetch(
           `${gatewayOptions.baseUrl}/routines/${routine.id}/completions?from=${isoDate}&to=${isoDate}`,
           { headers: await authHeaders() },
         );
         if (!res.ok) {
+          if (res.status === 404 || res.status === 400) {
+            // routine is gone or invalid; drop from cache to avoid repeated 400s
+            setCache(routines.filter((item) => item.id !== routine.id));
+            continue;
+          }
           throw new Error(await res.text());
         }
         const data = await res.json() as { items: RestCompletion[] };
