@@ -1,4 +1,10 @@
-import type { Comment, CommentCreateInput, Like, Post, PostCreateInput } from "../types.ts";
+import type {
+  Comment,
+  CommentCreateInput,
+  Like,
+  Post,
+  PostCreateInput,
+} from "../types.ts";
 import {
   decodeValue,
   documentName,
@@ -17,7 +23,11 @@ export interface CommunityRepository {
   removeLike(userId: string, postId: string): Promise<boolean>;
   getLike(userId: string, postId: string): Promise<Like | null>;
   // Comment
-  addComment(userId: string, postId: string, input: CommentCreateInput): Promise<Comment | null>;
+  addComment(
+    userId: string,
+    postId: string,
+    input: CommentCreateInput,
+  ): Promise<Comment | null>;
   listComments(postId: string): Promise<Comment[]>;
 }
 
@@ -50,7 +60,10 @@ export class FirestoreCommunityRepository implements CommunityRepository {
     const responses = await this.#client.runQuery({
       structuredQuery: {
         from: [{ collectionId: this.#collectionName }],
-        orderBy: [{ field: { fieldPath: "createdAt" }, direction: "DESCENDING" }],
+        orderBy: [{
+          field: { fieldPath: "createdAt" },
+          direction: "DESCENDING",
+        }],
         limit,
       },
     });
@@ -59,7 +72,7 @@ export class FirestoreCommunityRepository implements CommunityRepository {
       .filter((doc): doc is FirestoreDocument => Boolean(doc))
       .map((doc) => this.#toPost(doc));
   }
-  
+
   async getPost(postId: string): Promise<Post | null> {
     try {
       const doc = await this.#client.getDocument(
@@ -79,89 +92,106 @@ export class FirestoreCommunityRepository implements CommunityRepository {
     // Spec doesn't strictly say, but standard practice.
     // However, user can only like once.
     // Subcollection "likes". ID = userId seems appropriate if one like per user.
-    const likeId = userId; 
+    const likeId = userId;
     const now = new Date().toISOString();
-    
+
     // Transactional update would be better for counts, but for now simple 2-step.
     // 1. Create Like
     // 2. Increment count (blind write or read-modify-write)
-    
+
     // Check existence? createDocument with ID will fail if exists.
     try {
-       const doc = await this.#client.createDocument(
-        documentName(this.#client.projectPath, this.#collectionName, postId) + "/likes",
+      const doc = await this.#client.createDocument(
+        documentName(this.#client.projectPath, this.#collectionName, postId) +
+          "/likes",
         {
-           userId: { stringValue: userId },
-           postId: { stringValue: postId },
-           createdAt: { timestampValue: now },
+          userId: { stringValue: userId },
+          postId: { stringValue: postId },
+          createdAt: { timestampValue: now },
         },
-        likeId
-       );
-       
-       // Increment count
-       // Firestore REST API doesn't allow easy increment in patch without mask or explicit transform?
-       // `transform` is available in `commit` or `patch` with field transform. 
-       // FirestoreClient helper `patch` might not support transform easily. 
-       // I'll skip count increment for MVP or do read-modify-write if I have time.
-       // Actually, I can do read-modify-write on Post.
-       await this.#incrementPostCount(postId, "likeCount", 1);
-       
-       return this.#toLike(doc, postId);
-    } catch (e) {
-       // Assuming conflict (already liked)
-       // Check if it exists
-       const existing = await this.getLike(userId, postId);
-       return existing;
+        likeId,
+      );
+
+      // Increment count
+      // Firestore REST API doesn't allow easy increment in patch without mask or explicit transform?
+      // `transform` is available in `commit` or `patch` with field transform.
+      // FirestoreClient helper `patch` might not support transform easily.
+      // I'll skip count increment for MVP or do read-modify-write if I have time.
+      // Actually, I can do read-modify-write on Post.
+      await this.#incrementPostCount(postId, "likeCount", 1);
+
+      return this.#toLike(doc, postId);
+    } catch (_e) {
+      // Assuming conflict (already liked)
+      // Check if it exists
+      const existing = await this.getLike(userId, postId);
+      return existing;
     }
   }
 
   async removeLike(userId: string, postId: string): Promise<boolean> {
-     const likeId = userId;
-     const path = documentName(this.#client.projectPath, this.#collectionName, postId) + "/likes/" + likeId;
-     try {
-       await this.#client.deleteDocument(path);
-       await this.#incrementPostCount(postId, "likeCount", -1);
-       return true;
-     } catch {
-       return false;
-     }
+    const likeId = userId;
+    const path =
+      documentName(this.#client.projectPath, this.#collectionName, postId) +
+      "/likes/" + likeId;
+    try {
+      await this.#client.deleteDocument(path);
+      await this.#incrementPostCount(postId, "likeCount", -1);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async getLike(userId: string, postId: string): Promise<Like | null> {
-      const likeId = userId;
-      const path = documentName(this.#client.projectPath, this.#collectionName, postId) + "/likes/" + likeId;
-      try {
-        const doc = await this.#client.getDocument(path);
-        return this.#toLike(doc, postId);
-      } catch {
-        return null;
-      }
+    const likeId = userId;
+    const path =
+      documentName(this.#client.projectPath, this.#collectionName, postId) +
+      "/likes/" + likeId;
+    try {
+      const doc = await this.#client.getDocument(path);
+      return this.#toLike(doc, postId);
+    } catch {
+      return null;
+    }
   }
 
-  async addComment(userId: string, postId: string, input: CommentCreateInput): Promise<Comment | null> {
+  async addComment(
+    userId: string,
+    postId: string,
+    input: CommentCreateInput,
+  ): Promise<Comment | null> {
     const post = await this.getPost(postId);
     if (!post) return null;
 
     const now = new Date().toISOString();
     const doc = await this.#client.createDocument(
-      documentName(this.#client.projectPath, this.#collectionName, postId) + "/comments",
+      documentName(this.#client.projectPath, this.#collectionName, postId) +
+        "/comments",
       {
         userId: { stringValue: userId },
         postId: { stringValue: postId },
         text: encodeValue(input.text),
         createdAt: { timestampValue: now },
-      }
+      },
     );
     await this.#incrementPostCount(postId, "commentCount", 1);
     return this.#toComment(doc, postId);
   }
 
   async listComments(postId: string): Promise<Comment[]> {
-    const parent = documentName(this.#client.projectPath, this.#collectionName, postId);
+    const parent = documentName(
+      this.#client.projectPath,
+      this.#collectionName,
+      postId,
+    );
     const responses = await this.#client.runQuery({
       structuredQuery: {
         from: [{ collectionId: "comments" }],
-        orderBy: [{ field: { fieldPath: "createdAt" }, direction: "ASCENDING" }],
+        orderBy: [{
+          field: { fieldPath: "createdAt" },
+          direction: "ASCENDING",
+        }],
       },
     }, parent);
     return responses
@@ -170,22 +200,30 @@ export class FirestoreCommunityRepository implements CommunityRepository {
       .map((doc) => this.#toComment(doc, postId));
   }
 
-  async #incrementPostCount(postId: string, field: "likeCount" | "commentCount", delta: number) {
-     // Read-Modify-Write
-     // Real would use FieldTransform
-     const post = await this.getPost(postId);
-     if (!post) return;
-     const newVal = (post[field] || 0) + delta;
-     const path = documentName(this.#client.projectPath, this.#collectionName, postId);
-     
-     // encodeValue integer
-     const encodedVal = { integerValue: newVal.toString() };
-     
-     await this.#client.patchDocument(
-         path,
-         { [field]: encodedVal },
-         [field]
-     );
+  async #incrementPostCount(
+    postId: string,
+    field: "likeCount" | "commentCount",
+    delta: number,
+  ) {
+    // Read-Modify-Write
+    // Real would use FieldTransform
+    const post = await this.getPost(postId);
+    if (!post) return;
+    const newVal = (post[field] || 0) + delta;
+    const path = documentName(
+      this.#client.projectPath,
+      this.#collectionName,
+      postId,
+    );
+
+    // encodeValue integer
+    const encodedVal = { integerValue: newVal.toString() };
+
+    await this.#client.patchDocument(
+      path,
+      { [field]: encodedVal },
+      [field],
+    );
   }
 
   #toPost(doc: FirestoreDocument): Post {
@@ -216,14 +254,14 @@ export class FirestoreCommunityRepository implements CommunityRepository {
   }
 
   #toComment(doc: FirestoreDocument, postId: string): Comment {
-     const fields = doc.fields ?? {};
-     return {
-       id: extractDocumentId(doc),
-       postId,
-       userId: decodeValue(fields.userId) as string,
-       text: decodeValue(fields.text) as string,
-       createdAt: (decodeValue(fields.createdAt) as string) ??
-         doc.createTime ?? new Date().toISOString(),
-     };
+    const fields = doc.fields ?? {};
+    return {
+      id: extractDocumentId(doc),
+      postId,
+      userId: decodeValue(fields.userId) as string,
+      text: decodeValue(fields.text) as string,
+      createdAt: (decodeValue(fields.createdAt) as string) ??
+        doc.createTime ?? new Date().toISOString(),
+    };
   }
 }

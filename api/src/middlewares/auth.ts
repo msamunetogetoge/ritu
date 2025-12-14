@@ -1,5 +1,5 @@
 import type { Context, MiddlewareHandler, Next } from "hono";
-import { decode, verify } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
+import { decode, verify } from "djwt";
 
 type FirebaseClaims = {
   iss?: string;
@@ -21,7 +21,10 @@ const DEFAULT_CACHE_TTL_MS = 60 * 60 * 1000; // 1h
 let jwksCache: { keys: JsonWebKey[]; expiresAt: number } | null = null;
 const keyCache = new Map<string, CachedKey>();
 
-export const authMiddleware: MiddlewareHandler<AppEnv> = async (c: Context<AppEnv>, next: Next) => {
+export const authMiddleware: MiddlewareHandler<AppEnv> = async (
+  c: Context<AppEnv>,
+  next: Next,
+) => {
   if (c.req.path === "/v1/health") {
     return await next();
   }
@@ -38,7 +41,9 @@ async function resolveUserId(c: Context<AppEnv>): Promise<string | undefined> {
   const header = c.req.header("authorization");
   const bearer = extractBearer(header);
   const allowImpersonation = Deno.env.get("ALLOW_DEV_IMPERSONATION") === "true";
-  const fallback = allowImpersonation ? c.req.header("x-user-id")?.trim() : undefined;
+  const fallback = allowImpersonation
+    ? c.req.header("x-user-id")?.trim()
+    : undefined;
 
   if (bearer && isJwt(bearer)) {
     const projectId = firebaseProjectId();
@@ -106,7 +111,9 @@ function firebaseProjectId(): string | undefined {
     Deno.env.get("FIRESTORE_PROJECT_ID");
 }
 
-async function getFirebasePublicKey(kid: string): Promise<CryptoKey | undefined> {
+async function getFirebasePublicKey(
+  kid: string,
+): Promise<CryptoKey | undefined> {
   const cached = keyCache.get(kid);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.key;

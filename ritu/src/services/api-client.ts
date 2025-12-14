@@ -1,4 +1,4 @@
-export async function getBaseUrl(): Promise<string> {
+export function getBaseUrl(): string {
   const baseUrl = import.meta.env.VITE_ROUTINE_API_BASE_URL;
   if (!baseUrl) {
     throw new Error("VITE_ROUTINE_API_BASE_URL is required.");
@@ -41,7 +41,7 @@ export async function fetchWithAuth(
   path: string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const baseUrl = await getBaseUrl();
+  const baseUrl = getBaseUrl();
   const headers = await authHeaders();
   const mergedHeaders = {
     "Content-Type": "application/json",

@@ -4,7 +4,10 @@ import type { AppEnv } from "../middlewares/auth.ts";
 import type { CommunityService } from "../services/community-service.ts";
 import type { CommentCreateInput, PostCreateInput } from "../types.ts";
 
-export function registerCommunityRoutes(app: Hono<AppEnv>, service: CommunityService) {
+export function registerCommunityRoutes(
+  app: Hono<AppEnv>,
+  service: CommunityService,
+) {
   app.get("/v1/feed", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const posts = await service.getFeed(userId);
@@ -29,7 +32,11 @@ export function registerCommunityRoutes(app: Hono<AppEnv>, service: CommunitySer
       }
       return payload as PostCreateInput;
     }),
-    async (c: Context<AppEnv, any, { out: { json: PostCreateInput } }>) => {
+    async (
+      c: Context<AppEnv, Record<string, string>, {
+        out: { json: PostCreateInput };
+      }>,
+    ) => {
       const userId = c.get("userId");
       const body = c.req.valid("json");
       const post = await service.createPost(userId, body);
@@ -59,12 +66,19 @@ export function registerCommunityRoutes(app: Hono<AppEnv>, service: CommunitySer
         return c.json({ message: "invalid body" }, 400);
       }
       const payload = body as Partial<CommentCreateInput>;
-      if (!payload.text || typeof payload.text !== "string" || payload.text.trim().length === 0) {
+      if (
+        !payload.text || typeof payload.text !== "string" ||
+        payload.text.trim().length === 0
+      ) {
         return c.json({ message: "text is required" }, 400);
       }
       return payload as CommentCreateInput;
     }),
-    async (c: Context<AppEnv, any, { out: { json: CommentCreateInput } }>) => {
+    async (
+      c: Context<AppEnv, Record<string, string>, {
+        out: { json: CommentCreateInput };
+      }>,
+    ) => {
       const userId = c.get("userId");
       const postId = c.req.param("postId");
       const body = c.req.valid("json");
