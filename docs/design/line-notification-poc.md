@@ -68,3 +68,53 @@ interface Routine {
 ## セキュリティ・制約事項
 - `NotificationWorker` はサーバーサイドでのみ動作し、一般ユーザーからの直接アクセスは遮断されるべきである（現状の実装に準拠）。
 - 1分ごとのポーリングのため、厳密な秒単位の精度は保証しない。
+
+## LINE Messaging API Reference (Push Message)
+
+**Endpoint**: `POST https://api.line.me/v2/bot/message/push`
+
+ユーザー、グループトーク、または複数人トークに、任意のタイミングでメッセージを送信するAPI。
+
+### Headers
+- `Content-Type`: `application/json` (必須)
+- `Authorization`: `Bearer {channel access token}` (必須)
+- `X-Line-Retry-Key`: `{UUID}` (任意, 16進表記のUUID)
+
+### Body
+```json
+{
+    "to": "U4af4980629...", // 必須: 送信先のID (userId, groupId, roomId)
+    "messages": [            // 必須: 最大5件
+        {
+            "type": "text",
+            "text": "Hello, world"
+        }
+    ],
+    "notificationDisabled": false, // 任意: trueの場合、ユーザーに通知されない
+    "customAggregationUnits": ["promotion_a"] // 任意: 集計用ユニット名
+}
+```
+
+### Rate Limits
+- 2,000リクエスト/秒
+
+### Response (200 OK)
+```json
+{
+  "sentMessages": [
+    {
+      "id": "461230966842064897",
+      "quoteToken": "IStG5h1Tz7b..."
+    }
+  ]
+}
+```
+
+### Error Codes
+| Code | Description |
+| :--- | :--- |
+| **400** | 無効なユーザーID、存在しないグループ、無効なメッセージオブジェクトなど。 |
+| **409** | 同じリトライキーを含むリクエストがすでに受理されている。 |
+| **429** | レート制限超過、またはメッセージ送信数上限超過。 |
+
+※ ステータスコード200でも、ブロックされているユーザーやアカウント削除済みユーザーには実際には届かない場合がある。
