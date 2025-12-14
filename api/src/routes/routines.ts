@@ -1,15 +1,19 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { validator } from "hono/validator";
 import type { RoutineService } from "../services/routine-service.ts";
 import type { AppEnv } from "../middlewares/auth.ts";
-import type { RoutineCreateInput, RoutineUpdateInput } from "../types.ts";
+import type {
+  CompletionCreateInput,
+  RoutineCreateInput,
+  RoutineUpdateInput,
+} from "../types.ts";
 
 /* registerRoutineRoutesはRoutineServiceをHTTPエンドポイントへ公開する。 */
 export function registerRoutineRoutes(
   app: Hono<AppEnv>,
   routineService: RoutineService,
 ) {
-  app.get("/v1/routines", async (c) => {
+  app.get("/v1/routines", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const page = parsePositiveInteger(c.req.query("page"), 1);
     const limit = parsePositiveInteger(c.req.query("limit"), 20, 100);
@@ -24,13 +28,13 @@ export function registerRoutineRoutes(
 
   app.post(
     "/v1/routines",
-    validator("json", (body, c) => {
+    validator("json", (body: unknown, c: Context<AppEnv>) => {
       if (!body || typeof body !== "object") {
         return c.json({ message: "invalid body" }, 400);
       }
       return body as RoutineCreateInput;
     }),
-    async (c) => {
+    async (c: Context<AppEnv, any, { out: { json: RoutineCreateInput } }>) => {
       const userId = c.get("userId");
       const input = c.req.valid("json");
       const created = await routineService.createRoutine(userId, input);
@@ -38,7 +42,7 @@ export function registerRoutineRoutes(
     },
   );
 
-  app.get("/v1/routines/:id", async (c) => {
+  app.get("/v1/routines/:id", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const id = c.req.param("id");
     const routine = await routineService.getRoutine(userId, id);
@@ -47,13 +51,13 @@ export function registerRoutineRoutes(
 
   app.patch(
     "/v1/routines/:id",
-    validator("json", (body, c) => {
+    validator("json", (body: unknown, c: Context<AppEnv>) => {
       if (!body || typeof body !== "object") {
         return c.json({ message: "invalid body" }, 400);
       }
       return body as RoutineUpdateInput;
     }),
-    async (c) => {
+    async (c: Context<AppEnv, any, { out: { json: RoutineUpdateInput } }>) => {
       const userId = c.get("userId");
       const id = c.req.param("id");
       const input = c.req.valid("json");
@@ -62,13 +66,13 @@ export function registerRoutineRoutes(
     },
   );
 
-  app.delete("/v1/routines/:id", async (c) => {
+  app.delete("/v1/routines/:id", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     await routineService.deleteRoutine(userId, c.req.param("id"));
     return c.body(null, 204);
   });
 
-  app.post("/v1/routines/:id/restore", async (c) => {
+  app.post("/v1/routines/:id/restore", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const restored = await routineService.restoreRoutine(
       userId,
@@ -77,7 +81,7 @@ export function registerRoutineRoutes(
     return c.json(restored);
   });
 
-  app.get("/v1/routines/:id/completions", async (c) => {
+  app.get("/v1/routines/:id/completions", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const id = c.req.param("id");
     const { from, to } = c.req.query();
@@ -90,7 +94,7 @@ export function registerRoutineRoutes(
 
   app.post(
     "/v1/routines/:id/completions",
-    validator("json", (body, c) => {
+    validator("json", (body: unknown, c: Context<AppEnv>) => {
       if (!body || typeof body !== "object") {
         return c.json({ message: "invalid body" }, 400);
       }
@@ -99,7 +103,7 @@ export function registerRoutineRoutes(
       }
       return body as { date: string };
     }),
-    async (c) => {
+    async (c: Context<AppEnv, any, { out: { json: CompletionCreateInput } }>) => {
       const userId = c.get("userId");
       const id = c.req.param("id");
       const completion = await routineService.addCompletion(
@@ -111,7 +115,7 @@ export function registerRoutineRoutes(
     },
   );
 
-  app.delete("/v1/routines/:id/completions/:date", async (c) => {
+  app.delete("/v1/routines/:id/completions/:date", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const id = c.req.param("id");
     const date = c.req.param("date");

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type JSX, useEffect, useRef, useState } from "react";
 import type { RoutineDialogValue } from "../types.ts";
 import { normalizeDialogValue } from "../utils.ts";
 import { useFeatureFlags } from "../../../context/FeatureFlagContext.tsx";

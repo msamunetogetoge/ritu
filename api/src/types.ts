@@ -60,10 +60,73 @@ export interface Pagination {
   limit: number;
 }
 
-/* Paginatedは一覧レスポンスの共通形（items + page情報）を表す。 */
 export interface Paginated<T> {
   items: T[];
   page: number;
   limit: number;
   total: number;
+}
+
+/* NotificationSettings controls user preferences for alerts. */
+export interface NotificationSettings {
+  emailEnabled: boolean;
+  lineEnabled: boolean;
+  lineUserId?: string | null;
+  scheduleTime?: string; // HH:mm
+}
+/* User represents a user profile in the system. */
+export interface User {
+  id: string; // auth.uid
+  displayName: string;
+  photoUrl: string | null;
+  notificationSettings?: NotificationSettings;
+  isPremium?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* UserUpdateInput is used for PATCH /users/me */
+export interface UserUpdateInput {
+  displayName?: string;
+  photoUrl?: string | null;
+  notificationSettings?: NotificationSettings;
+  isPremium?: boolean; // Usually not updateable by user directly, but for MVP/Admin maybe? Or webhook.
+}
+
+/* Post represents a shared routine update in the feed. */
+export interface Post {
+  id: string;
+  userId: string;
+  routineId: string;
+  text: string;
+  likeCount: number;
+  commentCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostCreateInput {
+  routineId: string;
+  text?: string;
+}
+
+/* Comment on a post. */
+export interface Comment {
+  id: string;
+  postId: string;
+  userId: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface CommentCreateInput {
+  text: string;
+}
+
+/* Like on a post. */
+export interface Like {
+  id: string; // composite userId_postId usually, or random
+  postId: string;
+  userId: string;
+  createdAt: string;
 }

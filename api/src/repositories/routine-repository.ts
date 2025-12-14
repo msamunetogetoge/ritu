@@ -14,6 +14,7 @@ export interface RoutineRepository {
     userId: string,
     pagination: Pagination,
   ): Promise<Paginated<Routine>>;
+  countByUser(userId: string): Promise<number>;
   getById(userId: string, routineId: string): Promise<Routine | null>;
   create(userId: string, input: RoutineCreateInput): Promise<Routine>;
   update(

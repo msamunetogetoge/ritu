@@ -1,8 +1,17 @@
-import { type ReactNode, lazy, Suspense } from "react";
+import { lazy, type ReactNode, Suspense } from "react";
 
 // Lazy load providers to avoid importing firebase sdk in mock mode
-const FirebaseAuthProvider = lazy(() => import("./FirebaseAuthProvider.tsx").then(m => ({ default: m.FirebaseAuthProvider })));
-const MockAuthProvider = lazy(() => import("./MockAuthProvider.tsx").then(m => ({ default: m.MockAuthProvider })));
+const FirebaseAuthProvider = lazy(
+  () =>
+    import("./FirebaseAuthProvider.tsx").then((m) => ({
+      default: m.FirebaseAuthProvider,
+    })),
+);
+const MockAuthProvider = lazy(() =>
+  import("./MockAuthProvider.tsx").then((m) => ({
+    default: m.MockAuthProvider,
+  }))
+);
 
 const useMock = import.meta.env.VITE_USE_MOCK_AUTH === "true";
 

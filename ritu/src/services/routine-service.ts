@@ -11,44 +11,48 @@ import type {
 } from "./routines/types.ts";
 
 // Lazy load gateway to avoid top-level Firebase initialization
-let _gateway: RoutineGateway | undefined;
+let gatewayInstance: RoutineGateway | undefined;
 
 async function getGateway(): Promise<RoutineGateway> {
-  if (_gateway) return _gateway;
+  if (gatewayInstance) return gatewayInstance;
 
   const routineDataMode = import.meta.env.VITE_ROUTINE_DATA_MODE;
   const useBackend = routineDataMode === "backend";
 
   if (useBackend) {
-     const { createBackendGateway, resolveBackendOptions } = await import("./routines/backend-gateway.ts");
-     _gateway = createBackendGateway(resolveBackendOptions());
+    const { createBackendGateway, resolveBackendOptions } = await import(
+      "./routines/backend-gateway.ts"
+    );
+    gatewayInstance = createBackendGateway(resolveBackendOptions());
   } else {
-     const { createFirestoreGateway } = await import("./routines/firestore-gateway.ts");
-     _gateway = createFirestoreGateway();
+    const { createFirestoreGateway } = await import(
+      "./routines/firestore-gateway.ts"
+    );
+    gatewayInstance = createFirestoreGateway();
   }
-  return _gateway;
+  return gatewayInstance;
 }
 
 export function subscribeRoutines(
   userId: string,
   options: SubscribeOptions<RoutineRecord>,
 ): Unsubscribe {
-  // Subscriptions are synchronous in return type (Unsubscribe), but dynamic import is async.
-  // We need a wrapper.
   let unsubscribe: Unsubscribe = () => {};
   let isUnsubscribed = false;
 
-  getGateway().then(gw => {
-    if (isUnsubscribed) return;
-    const unsub = gw.subscribeRoutines(userId, options);
-    unsubscribe = () => {
+  getGateway()
+    .then((gw) => {
+      if (isUnsubscribed) return;
+      const unsub = gw.subscribeRoutines(userId, options);
+      unsubscribe = () => {
         unsub();
         isUnsubscribed = true;
-    };
-  }).catch(err => {
-    console.error("Failed to load gateway", err);
-    options.onError?.(err);
-  });
+      };
+    })
+    .catch((err) => {
+      console.error("Failed to load gateway", err);
+      options.onError?.(err);
+    });
 
   return () => {
     isUnsubscribed = true;
@@ -61,25 +65,27 @@ export function subscribeTodayCompletions(
   isoDate: string,
   options: SubscribeOptions<CompletionRecord>,
 ): Unsubscribe {
-    let unsubscribe: Unsubscribe = () => {};
-    let isUnsubscribed = false;
+  let unsubscribe: Unsubscribe = () => {};
+  let isUnsubscribed = false;
 
-    getGateway().then(gw => {
+  getGateway()
+    .then((gw) => {
       if (isUnsubscribed) return;
       const unsub = gw.subscribeTodayCompletions(userId, isoDate, options);
       unsubscribe = () => {
-          unsub();
-          isUnsubscribed = true;
+        unsub();
+        isUnsubscribed = true;
       };
-    }).catch(err => {
+    })
+    .catch((err) => {
       console.error("Failed to load gateway", err);
       options.onError?.(err);
     });
-  
-    return () => {
-      isUnsubscribed = true;
-      unsubscribe();
-    };
+
+  return () => {
+    isUnsubscribed = true;
+    unsubscribe();
+  };
 }
 
 export async function createRoutine(
