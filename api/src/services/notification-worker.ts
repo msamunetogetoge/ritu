@@ -7,20 +7,17 @@ export class NotificationWorker {
   #routineRepository: RoutineRepository;
   #lineService: LineService;
   #forcedRecipient?: string;
-  #manualTrigger: boolean;
 
   constructor(
     userRepository: UserRepository,
     routineRepository: RoutineRepository,
     lineService: LineService,
-    options: { manualTrigger?: boolean } = {},
   ) {
     this.#userRepository = userRepository;
     this.#routineRepository = routineRepository;
     this.#lineService = lineService;
     this.#forcedRecipient = Deno.env.get("LINE_NOTIFICATION_TO") ??
       Deno.env.get("LINE_TEST_TO");
-    this.#manualTrigger = options.manualTrigger ?? false;
   }
 
   start() {
@@ -48,15 +45,6 @@ export class NotificationWorker {
         const list = byUser.get(routine.userId) ?? [];
         list.push(routine.title);
         byUser.set(routine.userId, list);
-      }
-
-      if (this.#manualTrigger) {
-        for (const [userId, routineTitles] of byUser.entries()) {
-          console.info(
-            `[Notification][manual] ${time} user=${userId} routines=${routineTitles.join(", ")}`,
-          );
-        }
-        return;
       }
 
       for (const [userId, routineTitles] of byUser.entries()) {

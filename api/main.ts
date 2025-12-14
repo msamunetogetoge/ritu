@@ -69,9 +69,7 @@ if (!lineChannelAccessToken) {
   console.warn("[Notification] LINE_CHANNEL_ACCESS_TOKEN is not set. Falling back to mock send.");
 }
 const lineService = new LineService(lineChannelAccessToken);
-const notificationWorker = new NotificationWorker(userRepo, routineRepo, lineService, {
-  manualTrigger: forceMemory,
-});
+const notificationWorker = new NotificationWorker(userRepo, routineRepo, lineService);
 
 // Start Worker (only if allowed or in specific env? For now always)
 notificationWorker.start();
