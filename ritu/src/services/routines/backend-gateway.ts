@@ -68,12 +68,12 @@ export function resolveBackendOptions(): BackendGatewayOptions {
     throw new Error("VITE_ROUTINE_API_BASE_URL is required for backend mode.");
   }
   const pollMsRaw = import.meta.env.VITE_ROUTINE_API_POLL_MS;
-  const pollIntervalMs = pollMsRaw ? Number.parseInt(pollMsRaw, 10) : 10000;
+  const pollIntervalMs = pollMsRaw ? Number.parseInt(pollMsRaw, 10) : 0;
   return {
     baseUrl: baseUrl.replace(/\/+$/, ""),
     pollIntervalMs: Number.isFinite(pollIntervalMs) && pollIntervalMs > 0
       ? pollIntervalMs
-      : 10000,
+      : 0,
   };
 }
 
@@ -105,12 +105,14 @@ function pollRoutines(
   };
 
   fetchOnce();
-  const timer = setInterval(fetchOnce, gatewayOptions.pollIntervalMs);
+  const timer = gatewayOptions.pollIntervalMs > 0
+    ? setInterval(fetchOnce, gatewayOptions.pollIntervalMs)
+    : null;
 
   return () => {
     if (stopped) return;
     stopped = true;
-    clearInterval(timer);
+    if (timer) clearInterval(timer);
   };
 }
 
@@ -172,12 +174,14 @@ function pollCompletions(
   };
 
   fetchOnce();
-  const timer = setInterval(fetchOnce, gatewayOptions.pollIntervalMs);
+  const timer = gatewayOptions.pollIntervalMs > 0
+    ? setInterval(fetchOnce, gatewayOptions.pollIntervalMs)
+    : null;
 
   return () => {
     if (stopped) return;
     stopped = true;
-    clearInterval(timer);
+    if (timer) clearInterval(timer);
   };
 }
 
