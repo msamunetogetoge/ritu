@@ -10,27 +10,34 @@ export async function getBaseUrl(): Promise<string> {
 }
 
 export async function authHeaders(): Promise<HeadersInit> {
-  const token = await currentAuthToken();
-  if (!token) {
+  const authInfo = await currentAuthContext();
+  if (!authInfo) {
     return {};
   }
-  return { Authorization: `Bearer ${token}` };
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${authInfo.token}`,
+  };
+  if (authInfo.uid) {
+    headers["X-User-Id"] = authInfo.uid;
+  }
+  return headers;
 }
 
-async function currentAuthToken(): Promise<string | null> {
+async function currentAuthContext(): Promise<{ token: string; uid: string } | null> {
   const { auth } = await import("../lib/firebase.ts"); // Adjust path if needed. lib is in ../lib (relative to services root) usually?
   // file is in services/api-client.ts. lib is ../lib.
   const currentUser = auth.currentUser;
   if (!currentUser) {
     return null;
   }
-  return await currentUser.getIdToken();
+  const token = await currentUser.getIdToken();
+  return { token, uid: currentUser.uid };
 }
 
 export async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
   const baseUrl = await getBaseUrl();
   const headers = await authHeaders();
-  
+
   const mergedHeaders = {
     "Content-Type": "application/json",
     ...headers,

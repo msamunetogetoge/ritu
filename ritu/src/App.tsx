@@ -1,10 +1,16 @@
 import { type JSX } from "react";
-import { BrowserRouter, Routes, Route, Link, Outlet, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Link,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.tsx";
 import Today from "./routes/Today.tsx";
 import Profile from "./routes/Profile.tsx";
 import Community from "./routes/Community.tsx";
-import "./App.css";
 
 function Layout() {
   const { user } = useAuth();
@@ -14,30 +20,62 @@ function Layout() {
     <main className="phone" role="main">
       <div className="content">
         <header className="brand" aria-label="アプリ ヘッダー">
-           <div className="brand-left">
-             <div className="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="4"></circle><path d="M12 2v4M2 12h4M12 22v-4M22 12h-4"></path></svg></div>
-             <p className="brand-title">RITU</p>
-           </div>
-           {user && (
-             <Link to="/profile" className="avatar">
-                {user.photoURL ? <img src={user.photoURL} alt="Me" style={{width: 32, height: 32, borderRadius: '50%'}} /> : <span style={{fontSize: '1.5rem'}}>👤</span>}
-             </Link>
-           )}
+          <div className="brand-left">
+            <div className="logo">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="8"></circle>
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v4M2 12h4M12 22v-4M22 12h-4"></path>
+              </svg>
+            </div>
+            <p className="brand-title">RITU</p>
+          </div>
+          {user && (
+            <Link to="/profile" className="avatar">
+              {user.photoURL
+                ? (
+                  <img
+                    src={user.photoURL}
+                    alt="Me"
+                    style={{ width: 32, height: 32, borderRadius: "50%" }}
+                  />
+                )
+                : <span style={{ fontSize: "1.5rem" }}>👤</span>}
+            </Link>
+          )}
         </header>
 
-        <Outlet /> 
+        <Outlet />
 
         {user && (
-           <nav className="bottom-nav">
-              <Link to="/" className={location.pathname === "/" ? "active" : ""}>Today</Link>
-              <Link to="/community" className={location.pathname === "/community" ? "active" : ""}>Community</Link>
-              <Link to="/profile" className={location.pathname === "/profile" ? "active" : ""}>Profile</Link>
-           </nav>
+          <nav className="bottom-nav">
+            <Link to="/" className={location.pathname === "/" ? "active" : ""}>
+              Today
+            </Link>
+            <Link
+              to="/community"
+              className={location.pathname === "/community" ? "active" : ""}
+            >
+              Community
+            </Link>
+            <Link
+              to="/profile"
+              className={location.pathname === "/profile" ? "active" : ""}
+            >
+              Profile
+            </Link>
+          </nav>
         )}
       </div>
       <div className="home-indicator" aria-hidden="true"></div>
-      
-      <style>{`
+
+      <style>
+        {`
         /* Global override or addition for Router layout */
         .bottom-nav {
             position: fixed; bottom: 1.5rem; left: 0; right: 0;
@@ -49,7 +87,8 @@ function Layout() {
         .bottom-nav a.active { color: white; }
         /* Adjust main-scroll to not be hidden by nav */
         .main-scroll { padding-bottom: 5rem; }
-      `}</style>
+      `}
+      </style>
     </main>
   );
 }
