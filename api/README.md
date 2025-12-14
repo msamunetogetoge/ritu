@@ -6,16 +6,16 @@ Hono）を格納します。ルーティーン閲覧・登録ワークフロー�
 
 ## ディレクトリ構成と責務
 
-| パス                      | 役割                                                                                                                                                                        |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.ts`                 | Deno の HTTP エントリーポイント。`createApp` が返す Hono アプリを `Deno.serve` に渡すだけの薄いラッパーです。                                                               |
-| `src/app.ts`              | Hono インスタンス組み立て。認証ミドルウェア、ルーティング登録、エラーハンドリングをまとめます。Cloud Run／テスト双方で同じ構成を再利用できるようにしています。              |
-| `src/middlewares/auth.ts` | Firebase ID トークンを検証して `uid` を抽出します。トークンが未取得の場合は開発用に `Authorization: Bearer <uid>` と `x-user-id` ヘッダーのフォールバックにも対応します。   |
-| `src/routes/`             | HTTP ルート宣言。`routes/routines.ts` が RoutineService を HTTP エンドポイント（GET/POST/PATCH/DELETE）にマッピングします。バリデーションは Hono の `validator` を使用。    |
-| `src/services/`           | ドメインサービス層。`RoutineService` がルーティーンと完了のユースケース（ソフトデリート復元、ストリーク計算など）を定義します。                                             |
-| `src/repositories/`       | 永続化インターフェース。`routine-repository.ts` が抽象化を定義し、`in-memory.ts` がテスト用スタブ実装です。Firestore 実装を追加する場合はこのインターフェースを実装します。 |
-| `src/types.ts`            | API レスポンス／ユースケースで共有する基本型。OpenAPI の `Routine`/`Completion` スキーマに対応しています。                                                                  |
-| `src/**/*.test.ts`        | Deno 標準のテスト。サービス層のロジックと HTTP レイヤの挙動をエンドツーエンドに近い形で検証します。                                                                         |
+| パス                      | 役割                                                                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `main.ts`                 | Deno の HTTP エントリーポイント。`createApp` が返す Hono アプリを `Deno.serve` に渡すだけの薄いラッパーです。                                                                                                            |
+| `src/app.ts`              | Hono インスタンス組み立て。認証ミドルウェア、ルーティング登録、エラーハンドリングをまとめます。Cloud Run／テスト双方で同じ構成を再利用できるようにしています。                                                           |
+| `src/middlewares/auth.ts` | Firebase ID トークンを検証して `uid` を抽出します。トークンが未取得の場合は開発用に `Authorization: Bearer <uid>` を許容し、`ALLOW_DEV_IMPERSONATION=true` 時のみ `x-user-id` ヘッダーをフォールバックとして利用します。 |
+| `src/routes/`             | HTTP ルート宣言。`routes/routines.ts` が RoutineService を HTTP エンドポイント（GET/POST/PATCH/DELETE）にマッピングします。バリデーションは Hono の `validator` を使用。                                                 |
+| `src/services/`           | ドメインサービス層。`RoutineService` がルーティーンと完了のユースケース（ソフトデリート復元、ストリーク計算など）を定義します。                                                                                          |
+| `src/repositories/`       | 永続化インターフェース。`routine-repository.ts` が抽象化を定義し、`in-memory.ts` がテスト用スタブ実装です。Firestore 実装を追加する場合はこのインターフェースを実装します。                                              |
+| `src/types.ts`            | API レスポンス／ユースケースで共有する基本型。OpenAPI の `Routine`/`Completion` スキーマに対応しています。                                                                                                               |
+| `src/**/*.test.ts`        | Deno 標準のテスト。サービス層のロジックと HTTP レイヤの挙動をエンドツーエンドに近い形で検証します。                                                                                                                      |
 
 ## 実行・開発コマンド
 
@@ -97,18 +97,18 @@ Firestore に接続できます。
 
 ## バックエンド開発ロードマップ
 
-| 項目                                          | ステータス | メモ                                                                                                     |
-| --------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- |
-| `/v1/health`                                  | 完了       | Hono ルート実装済み。稼働確認用の疎通エンドポイント。                                                    |
-| `/v1/routines` (GET/POST/PATCH/DELETE)        | 完了       | InMemory リポジトリ上で CRUD が動作。OpenAPI 仕様に合わせて `total` を含むレスポンスを返却。             |
-| `/v1/routines/:id/restore`                    | 完了       | 7日間のソフトデリート復元ロジックとテストを実装。                                                        |
-| `/v1/routines/:id/completions` (GET/POST)     | 完了       | 日付バリデーションとストリーク再計算を含む。                                                             |
-| `/v1/routines/:id/completions/:date` (DELETE) | 完了       | REST 仕様に追記済み。取り消し後にストリークを再計算。                                                    |
-| Firestore 版 RoutineRepository                | 未着手     | 現状は InMemory スタブのみ。Firestore Emulator/本番への書き込み確認が必要。                              |
-| Firebase ID トークン検証ミドルウェア          | 完了       | `authMiddleware` が Firebase ID トークンから `uid` を検証・抽出し、フォールバックに `x-user-id` を使用。 |
-| 自動テスト: サービス/ルート                   | 完了       | Deno 標準テストで主要ユースケースをカバー。                                                              |
-| 自動テスト: Firestore 結合                    | 未着手     | エミュレータを使った E2E テストの追加が必要。                                                            |
-| デプロイ設定 (Cloud Run/Firebase)             | 未着手     | `deno task start` に相当する本番ビルド／インフラ設定は今後整備。                                         |
+| 項目                                          | ステータス | メモ                                                                                                                                                  |
+| --------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/health`                                  | 完了       | Hono ルート実装済み。稼働確認用の疎通エンドポイント。                                                                                                 |
+| `/v1/routines` (GET/POST/PATCH/DELETE)        | 完了       | InMemory リポジトリ上で CRUD が動作。OpenAPI 仕様に合わせて `total` を含むレスポンスを返却。                                                          |
+| `/v1/routines/:id/restore`                    | 完了       | 7日間のソフトデリート復元ロジックとテストを実装。                                                                                                     |
+| `/v1/routines/:id/completions` (GET/POST)     | 完了       | 日付バリデーションとストリーク再計算を含む。                                                                                                          |
+| `/v1/routines/:id/completions/:date` (DELETE) | 完了       | REST 仕様に追記済み。取り消し後にストリークを再計算。                                                                                                 |
+| Firestore 版 RoutineRepository                | 未着手     | 現状は InMemory スタブのみ。Firestore Emulator/本番への書き込み確認が必要。                                                                           |
+| Firebase ID トークン検証ミドルウェア          | 完了       | `authMiddleware` が Firebase ID トークンから `uid` を検証・抽出し、`ALLOW_DEV_IMPERSONATION=true` のときのみフォールバックとして `x-user-id` を利用。 |
+| 自動テスト: サービス/ルート                   | 完了       | Deno 標準テストで主要ユースケースをカバー。                                                                                                           |
+| 自動テスト: Firestore 結合                    | 未着手     | エミュレータを使った E2E テストの追加が必要。                                                                                                         |
+| デプロイ設定 (Cloud Run/Firebase)             | 未着手     | `deno task start` に相当する本番ビルド／インフラ設定は今後整備。                                                                                      |
 
 ### 次に取り組むとよさそうな優先タスク
 

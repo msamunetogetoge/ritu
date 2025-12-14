@@ -26,15 +26,16 @@ export class CommunityService {
   }
 
   async toggleLike(userId: string, postId: string): Promise<{ liked: boolean; like?: Like }> {
-     const existing = await this.#repository.getLike(userId, postId);
-     if (existing) {
-       await this.#repository.removeLike(userId, postId);
-       return { liked: false };
-     } else {
-       const like = await this.#repository.addLike(userId, postId);
-       if (!like) throw notFound("post not found");
-       return { liked: true, like };
-     }
+    const existing = await this.#repository.getLike(userId, postId);
+    if (existing) {
+      const removed = await this.#repository.removeLike(userId, postId);
+      if (!removed) throw notFound("like not found");
+      return { liked: false };
+    } else {
+      const like = await this.#repository.addLike(userId, postId);
+      if (!like) throw notFound("post not found");
+      return { liked: true, like };
+    }
   }
 
   async addComment(userId: string, postId: string, input: CommentCreateInput): Promise<Comment> {
@@ -45,7 +46,7 @@ export class CommunityService {
     if (!comment) throw notFound("post not found");
     return comment;
   }
-  
+
   async listComments(postId: string): Promise<Comment[]> {
     return this.#repository.listComments(postId);
   }

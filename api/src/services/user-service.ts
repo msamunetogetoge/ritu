@@ -32,26 +32,28 @@ export class UserService {
       throw validationError("display name must not be empty");
     }
 
+    const { isPremium: _ignoredPremium, ...safeInput } = input;
+
     const existing = await this.#repository.getById(userId);
     if (!existing) {
       // Create if not exists (upsert)
       // We need mandatory fields for creation. "displayName" is required.
-      if (!input.displayName) {
-         throw notFound("user profile not found and display name required for creation");
+      if (!safeInput.displayName) {
+        throw notFound("user profile not found and display name required for creation");
       }
       return this.#repository.create(userId, {
-        displayName: input.displayName,
-        photoUrl: input.photoUrl ?? null,
+        displayName: safeInput.displayName,
+        photoUrl: safeInput.photoUrl ?? null,
       });
     }
 
     const updated = await this.#repository.update(userId, {
-      ...input,
-      displayName: input.displayName?.trim(),
+      ...safeInput,
+      displayName: safeInput.displayName?.trim(),
     });
-    
+
     if (!updated) {
-       throw notFound("user profile update failed"); // Should not happen if we checked existing
+      throw notFound("user profile update failed"); // Should not happen if we checked existing
     }
     return updated;
   }

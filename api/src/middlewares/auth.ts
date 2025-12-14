@@ -36,8 +36,9 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c: Context<AppEn
 
 async function resolveUserId(c: Context<AppEnv>): Promise<string | undefined> {
   const header = c.req.header("authorization");
-  const fallback = c.req.header("x-user-id")?.trim();
   const bearer = extractBearer(header);
+  const allowImpersonation = Deno.env.get("ALLOW_DEV_IMPERSONATION") === "true";
+  const fallback = allowImpersonation ? c.req.header("x-user-id")?.trim() : undefined;
 
   if (bearer && isJwt(bearer)) {
     const projectId = firebaseProjectId();
