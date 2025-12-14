@@ -1,9 +1,18 @@
 import { fetchWithAuth } from "./api-client.ts";
 
+export interface NotificationSettings {
+  emailEnabled: boolean;
+  lineEnabled: boolean;
+  lineUserId?: string | null;
+  scheduleTime?: string;
+}
+
 export interface User {
   id: string;
   displayName: string;
   photoUrl: string | null;
+  notificationSettings?: NotificationSettings;
+  isPremium?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -11,17 +20,17 @@ export interface User {
 export interface UserUpdateInput {
   displayName?: string;
   photoUrl?: string | null;
+  notificationSettings?: NotificationSettings;
+  isPremium?: boolean;
 }
 
 export async function getMyProfile(): Promise<User> {
   const response = await fetchWithAuth("/users/me");
   if (!response.ok) {
-     if (response.status === 404) {
-         // Should we throw or return null?
-         // App logic: invalid profile -> redirect to setup?
-         throw new Error("Profile not found");
-     }
-     throw new Error(await response.text());
+    if (response.status === 404) {
+      throw new Error("Profile not found");
+    }
+    throw new Error(await response.text());
   }
   return await response.json() as User;
 }

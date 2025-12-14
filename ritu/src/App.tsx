@@ -8,9 +8,15 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.tsx";
+import {
+  FeatureFlagProvider,
+  ProtectedFeature,
+} from "./context/FeatureFlagContext.tsx";
 import Today from "./routes/Today.tsx";
 import Profile from "./routes/Profile.tsx";
 import Community from "./routes/Community.tsx";
+import NotificationSettingsPage from "./routes/NotificationSettings.tsx";
+import BillingPage from "./routes/Billing.tsx";
 
 function Layout() {
   const { user } = useAuth();
@@ -57,12 +63,14 @@ function Layout() {
             <Link to="/" className={location.pathname === "/" ? "active" : ""}>
               Today
             </Link>
-            <Link
-              to="/community"
-              className={location.pathname === "/community" ? "active" : ""}
-            >
-              Community
-            </Link>
+            <ProtectedFeature flag="community">
+              <Link
+                to="/community"
+                className={location.pathname === "/community" ? "active" : ""}
+              >
+                Community
+              </Link>
+            </ProtectedFeature>
             <Link
               to="/profile"
               className={location.pathname === "/profile" ? "active" : ""}
@@ -96,15 +104,29 @@ function Layout() {
 export default function App(): JSX.Element {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Today />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/profile" element={<Profile />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <FeatureFlagProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Today />} />
+              <Route
+                path="/community"
+                element={
+                  <ProtectedFeature flag="community">
+                    <Community />
+                  </ProtectedFeature>
+                }
+              />
+              <Route path="/profile" element={<Profile />} />
+              <Route
+                path="/settings/notifications"
+                element={<NotificationSettingsPage />}
+              />
+              <Route path="/billing" element={<BillingPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </FeatureFlagProvider>
     </AuthProvider>
   );
 }

@@ -1,9 +1,4 @@
 import type { Unsubscribe } from "firebase/firestore";
-import {
-  createBackendGateway,
-  resolveBackendOptions,
-} from "./routines/backend-gateway.ts";
-import { createFirestoreGateway } from "./routines/firestore-gateway.ts";
 import type {
   CompletionRecord,
   CreateRoutineInput,
@@ -15,28 +10,54 @@ import type {
   UpdateRoutineInput,
 } from "./routines/types.ts";
 
-type RoutineDataMode = "firestore" | "backend";
+// Lazy load gateway to avoid top-level Firebase initialization
+let gatewayInstance: RoutineGateway | undefined;
 
-const routineDataMode: RoutineDataMode = (() => {
-  const raw = import.meta.env.VITE_ROUTINE_DATA_MODE;
-  if (raw === "backend" || raw === "firestore") {
-    return raw;
+async function getGateway(): Promise<RoutineGateway> {
+  if (gatewayInstance) return gatewayInstance;
+
+  const routineDataMode = import.meta.env.VITE_ROUTINE_DATA_MODE;
+  const useBackend = routineDataMode === "backend";
+
+  if (useBackend) {
+    const { createBackendGateway, resolveBackendOptions } = await import(
+      "./routines/backend-gateway.ts"
+    );
+    gatewayInstance = createBackendGateway(resolveBackendOptions());
+  } else {
+    const { createFirestoreGateway } = await import(
+      "./routines/firestore-gateway.ts"
+    );
+    gatewayInstance = createFirestoreGateway();
   }
-  return "firestore";
-})();
-
-const firestoreGateway = createFirestoreGateway();
-const backendGateway: RoutineGateway | null = routineDataMode === "backend"
-  ? createBackendGateway(resolveBackendOptions())
-  : null;
-
-const gateway: RoutineGateway = backendGateway ?? firestoreGateway;
+  return gatewayInstance;
+}
 
 export function subscribeRoutines(
   userId: string,
   options: SubscribeOptions<RoutineRecord>,
 ): Unsubscribe {
-  return gateway.subscribeRoutines(userId, options);
+  let unsubscribe: Unsubscribe = () => {};
+  let isUnsubscribed = false;
+
+  getGateway()
+    .then((gw) => {
+      if (isUnsubscribed) return;
+      const unsub = gw.subscribeRoutines(userId, options);
+      unsubscribe = () => {
+        unsub();
+        isUnsubscribed = true;
+      };
+    })
+    .catch((err) => {
+      console.error("Failed to load gateway", err);
+      options.onError?.(err);
+    });
+
+  return () => {
+    isUnsubscribed = true;
+    unsubscribe();
+  };
 }
 
 export function subscribeTodayCompletions(
@@ -44,31 +65,55 @@ export function subscribeTodayCompletions(
   isoDate: string,
   options: SubscribeOptions<CompletionRecord>,
 ): Unsubscribe {
-  return gateway.subscribeTodayCompletions(userId, isoDate, options);
+  let unsubscribe: Unsubscribe = () => {};
+  let isUnsubscribed = false;
+
+  getGateway()
+    .then((gw) => {
+      if (isUnsubscribed) return;
+      const unsub = gw.subscribeTodayCompletions(userId, isoDate, options);
+      unsubscribe = () => {
+        unsub();
+        isUnsubscribed = true;
+      };
+    })
+    .catch((err) => {
+      console.error("Failed to load gateway", err);
+      options.onError?.(err);
+    });
+
+  return () => {
+    isUnsubscribed = true;
+    unsubscribe();
+  };
 }
 
-export function createRoutine(
+export async function createRoutine(
   userId: string,
   input: CreateRoutineInput,
 ): Promise<string> {
-  return gateway.createRoutine(userId, input);
+  const gw = await getGateway();
+  return gw.createRoutine(userId, input);
 }
 
-export function updateRoutine(
+export async function updateRoutine(
   routineId: string,
   input: UpdateRoutineInput,
 ): Promise<void> {
-  return gateway.updateRoutine(routineId, input);
+  const gw = await getGateway();
+  return gw.updateRoutine(routineId, input);
 }
 
-export function setTodayCompletion(
+export async function setTodayCompletion(
   options: SetCompletionOptions,
 ): Promise<void> {
-  return gateway.setTodayCompletion(options);
+  const gw = await getGateway();
+  return gw.setTodayCompletion(options);
 }
 
-export function deleteRoutine(routineId: string): Promise<void> {
-  return gateway.deleteRoutine(routineId);
+export async function deleteRoutine(routineId: string): Promise<void> {
+  const gw = await getGateway();
+  return gw.deleteRoutine(routineId);
 }
 
 export { formatIsoDate } from "./routines/helpers.ts";
