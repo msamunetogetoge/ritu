@@ -7,7 +7,8 @@
   },
   "tasks": {
     "start": "deno run --allow-env --allow-net --allow-read main.ts",
-    "dev": "ROUTINE_REPOSITORY=memory deno run --watch --allow-env --allow-net --allow-read main.ts",
+    "dev": "PORT=8081 ROUTINE_REPOSITORY=memory deno run --watch --allow-env --allow-net --allow-read main.ts",
+    "dev_f": "PORT=8081 ROUTINE_REPOSITORY=firestore deno run --watch --allow-env --allow-net --allow-read main.ts",
     "test": "deno test --allow-env --allow-net --allow-read",
     "build": "deno check main.ts"
   },
