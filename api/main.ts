@@ -65,6 +65,9 @@ const communityService = new CommunityService({ repository: communityRepo });
 
 // Initialize Notification Worker
 const lineChannelAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "";
+if (!lineChannelAccessToken) {
+  console.warn("[Notification] LINE_CHANNEL_ACCESS_TOKEN is not set. Falling back to mock send.");
+}
 const lineService = new LineService(lineChannelAccessToken);
 const notificationWorker = new NotificationWorker(userRepo, routineRepo, lineService, {
   manualTrigger: forceMemory,

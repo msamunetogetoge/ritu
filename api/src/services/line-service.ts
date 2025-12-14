@@ -1,14 +1,16 @@
-
 export class LineService {
   #channelAccessToken: string;
 
   constructor(channelAccessToken: string) {
     this.#channelAccessToken = channelAccessToken;
+    if (!channelAccessToken) {
+      console.warn("[LineService] LINE_CHANNEL_ACCESS_TOKEN is empty. Using mock send.");
+    }
   }
 
   async sendPushMessage(userId: string, text: string): Promise<void> {
     if (!this.#channelAccessToken) {
-      console.log(`[Mock LINE] Send to ${userId}: ${text}`);
+      console.info(`[Mock LINE] Send to ${userId}: ${text}`);
       return;
     }
 

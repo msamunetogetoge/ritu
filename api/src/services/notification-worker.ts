@@ -24,7 +24,7 @@ export class NotificationWorker {
   }
 
   start() {
-    console.log("Starting notification worker...");
+    console.info("Starting notification worker...");
     // Check every minute
     setInterval(() => this.#checkAndSend(), 60 * 1000);
   }
@@ -41,7 +41,7 @@ export class NotificationWorker {
       const routines = await this.#routineRepository.listByScheduleTime(time);
       if (routines.length === 0) return;
 
-      console.log(`[Notification] Found ${routines.length} routines for time ${time}`);
+      console.info(`[Notification] Found ${routines.length} routines for time ${time}`);
 
       const byUser = new Map<string, string[]>();
       for (const routine of routines) {
@@ -52,7 +52,7 @@ export class NotificationWorker {
 
       if (this.#manualTrigger) {
         for (const [userId, routineTitles] of byUser.entries()) {
-          console.log(
+          console.info(
             `[Notification][manual] ${time} user=${userId} routines=${routineTitles.join(", ")}`,
           );
         }
