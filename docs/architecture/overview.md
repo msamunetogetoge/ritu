@@ -1,3 +1,4 @@
+```mermaid
 flowchart TB
   %% ========== Client ==========
   subgraph Client["Client (Web / Mobile App)"]

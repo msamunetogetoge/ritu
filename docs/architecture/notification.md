@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
   autonumber
   participant Scheduler as Cloud Scheduler
