@@ -69,6 +69,28 @@ Cloud Run
 上ではメタデータサーバ経由でデフォルトサービスアカウントのトークンを取得するため、追加の設定なしで
 Firestore に接続できます。
 
+## Cloud Run（開発環境）デプロイ
+
+ルートの `cloudbuild.yaml` で Cloud Build → Artifact Registry → Cloud Run の流れを自動化しています。
+
+1. Artifact Registry（例: `ritu-be-itg-YYYYMMDD`）を `asia-northeast1` に作成  
+   `gcloud artifacts repositories create ritu-be-itg-20250205 --repository-format=docker --location=asia-northeast1 --project ritu-475021`
+2. Cloud Build を実行し、コンテナをビルド＆デプロイ  
+   `gcloud builds submit --config cloudbuild.yaml --substitutions=_REPO=ritu-be-itg-20250205,_TAG=dev,_FIRESTORE_PROJECT_ID=ritu-9cfb0 --project ritu-475021`
+3. Cloud Run のデフォルトドメイン（`https://<service>-<hash>-uc.a.run.app`）を `VITE_ROUTINE_API_BASE_URL` に設定してください。
+
+主要環境変数（Cloud Run デプロイ時に指定）
+
+- `FIRESTORE_PROJECT_ID`: 例 `ritu-9cfb0`
+- `ALLOW_DEV_IMPERSONATION`: `true` で `Authorization: Bearer <uid>` / `X-User-Id` フォールバックを許可（開発用）
+- Feature flags（デフォルト `false`）
+  - `FEATURE_FLAG_BILLING`
+  - `FEATURE_FLAG_NOTIFICATIONS`
+  - `FEATURE_FLAG_LINE_INTEGRATION`
+  - `FEATURE_FLAG_COMPLETIONS`
+  - `FEATURE_FLAG_COMMUNITY`
+  - `FEATURE_FLAG_PROFILE_DETAILS`（プロフィール編集は使うので `true` 推奨）
+
 ## Firestore 実装の組み込み方針
 
 1. `src/repositories` に Firestore 版 `RoutineRepository` を追加し、`RoutineService` から利用する

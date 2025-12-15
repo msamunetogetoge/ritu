@@ -18,6 +18,8 @@ export function RoutineDialog(
   const [formValue, setFormValue] = useState<RoutineDialogValue>(initialValue);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const { isEnabled } = useFeatureFlags();
+  const notificationsEnabled = isEnabled("notifications");
+  const communityEnabled = isEnabled("community");
 
   useEffect(() => {
     if (open) {
@@ -114,26 +116,28 @@ export function RoutineDialog(
           <p className="hint">入力すると Today のリマインドに表示されます。</p>
         </div>
 
-        <div className="checkbox-row">
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={Boolean(formValue.notify)}
-              onChange={(event) => {
-                const { checked } = event.currentTarget;
-                setFormValue((prev) => ({
-                  ...prev,
-                  notify: checked,
-                }));
-              }}
-              disabled={!formValue.scheduledTime}
-            />
-            LINE通知を受け取る
-          </label>
-          {!formValue.scheduledTime && <p className="hint">通知するには時刻を設定してください。</p>}
-        </div>
+        {notificationsEnabled && (
+          <div className="checkbox-row">
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={Boolean(formValue.notify)}
+                onChange={(event) => {
+                  const { checked } = event.currentTarget;
+                  setFormValue((prev) => ({
+                    ...prev,
+                    notify: checked,
+                  }));
+                }}
+                disabled={!formValue.scheduledTime}
+              />
+              LINE通知を受け取る
+            </label>
+            {!formValue.scheduledTime && <p className="hint">通知するには時刻を設定してください。</p>}
+          </div>
+        )}
 
-        {isEnabled("community") && (
+        {communityEnabled && (
           <>
             <div className="checkbox-row">
               <label className="checkbox">

@@ -29,6 +29,7 @@ export interface AppOptions {
   routineRepository?: RoutineRepository;
   userRepository?: UserRepository;
   communityRepository?: CommunityRepository;
+  enableLineRoutes?: boolean;
 }
 
 /* createAppはHonoインスタンスを組み立て、認証・ルーティング・エラーハンドリングを束ねる。 */
@@ -36,6 +37,7 @@ export function createApp(options: AppOptions = {}) {
   const routineRepo = options.routineRepository ?? options.repository ?? createDefaultRoutineRepository();
   const userRepo = options.userRepository ?? createDefaultUserRepository();
   const communityRepo = options.communityRepository ?? createDefaultCommunityRepository();
+  const enableLineRoutes = options.enableLineRoutes ?? true;
 
   const routineService = options.routineService ??
     new RoutineService({ repository: routineRepo, userRepository: userRepo });
@@ -74,7 +76,9 @@ export function createApp(options: AppOptions = {}) {
   registerRoutineRoutes(app, routineService);
   registerUserRoutes(app, userService);
   registerCommunityRoutes(app, communityService);
-  registerLineRoutes(app, lineService);
+  if (enableLineRoutes) {
+    registerLineRoutes(app, lineService);
+  }
 
   app.onError((err: Error, c: Context<AppEnv>) => {
     /* ドメインエラーはコード付きで返し、それ以外は500にフォールバック。 */

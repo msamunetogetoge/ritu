@@ -24,6 +24,10 @@ interface CompletionSummary {
   readonly rate: number;
 }
 
+interface UseTodayRoutineOptions {
+  readonly enableCompletion?: boolean;
+}
+
 interface UseTodayRoutinesResult {
   readonly routines: ReadonlyArray<Routine>;
   readonly routineRecords: ReadonlyArray<RoutineRecord>;
@@ -47,7 +51,9 @@ interface UseTodayRoutinesResult {
 export function useTodayRoutines(
   user: { readonly uid: string } | null,
   isoDate: string,
+  options: UseTodayRoutineOptions = {},
 ): UseTodayRoutinesResult {
+  const enableCompletion = options.enableCompletion ?? true;
   const userId = user?.uid;
   const [routineRecords, setRoutineRecords] = useState<
     ReadonlyArray<RoutineRecord>
@@ -101,7 +107,8 @@ export function useTodayRoutines(
 
   useEffect(() => {
     setCompletionRecords([]);
-    if (!userId) {
+    if (!userId || !enableCompletion) {
+      setCompletionsLoading(false);
       return;
     }
     setCompletionsLoading(true);
@@ -119,11 +126,14 @@ export function useTodayRoutines(
     return () => {
       unsubscribe();
     };
-  }, [userId, isoDate]);
+  }, [userId, isoDate, enableCompletion]);
 
   const completionSet = useMemo(
-    () => new Set(completionRecords.map((record) => record.routineId)),
-    [completionRecords],
+    () =>
+      enableCompletion
+        ? new Set(completionRecords.map((record) => record.routineId))
+        : new Set(),
+    [completionRecords, enableCompletion],
   );
 
   const routines = useMemo<ReadonlyArray<Routine>>(() => {
@@ -140,6 +150,9 @@ export function useTodayRoutines(
   }, [routineRecords, completionSet]);
 
   const completion = useMemo<CompletionSummary>(() => {
+    if (!enableCompletion) {
+      return { total: 0, completed: 0, rate: 0 };
+    }
     const total = routines.length;
     const completed = routines.filter((routine) =>
       routine.status === "complete"
@@ -147,9 +160,9 @@ export function useTodayRoutines(
       .length;
     const rate = total === 0 ? 0 : Math.round((completed / total) * 100);
     return { total, completed, rate };
-  }, [routines]);
+  }, [routines, enableCompletion]);
 
-  const isLoading = routinesLoading || completionsLoading;
+  const isLoading = routinesLoading || (enableCompletion && completionsLoading);
 
   const createRoutineAction = useCallback(async (value: RoutineDialogValue) => {
     if (!user) {
@@ -195,6 +208,9 @@ export function useTodayRoutines(
 
   const toggleCompletion = useCallback(
     async (routineId: string) => {
+      if (!enableCompletion) {
+        return;
+      }
       if (!user) {
         globalThis.alert("Firestore に記録するにはログインが必要です。");
         return;
@@ -227,7 +243,7 @@ export function useTodayRoutines(
         });
       }
     },
-    [user, routineRecords, completionSet],
+    [user, routineRecords, completionSet, enableCompletion],
   );
 
   const deleteRoutineAction = useCallback(async (routineId: string) => {

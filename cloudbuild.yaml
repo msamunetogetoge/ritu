@@ -1,0 +1,61 @@
+options:
+  substitutionOption: ALLOW_LOOSE
+
+substitutions:
+  _REGION: asia-northeast1
+  _SERVICE: ritu-be-itg
+  _REPO: ritu-be-itg-dev
+  _TAG: dev
+  _FIRESTORE_PROJECT_ID: ritu-9cfb0
+  _FEATURE_BILLING: "false"
+  _FEATURE_NOTIFICATIONS: "false"
+  _FEATURE_LINE: "false"
+  _FEATURE_COMPLETIONS: "false"
+  _FEATURE_COMMUNITY: "false"
+  _FEATURE_PROFILE_DETAILS: "true"
+  _ALLOW_DEV_IMPERSONATION: "true"
+
+steps:
+  - id: docker-build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - api/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}
+      - .
+  - id: docker-push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}
+  - id: run-deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --project
+      - $PROJECT_ID
+      - --region
+      - ${_REGION}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}
+      - --allow-unauthenticated
+      - --port
+      - "8080"
+      - --set-env-vars
+      - >-
+        FIRESTORE_PROJECT_ID=${_FIRESTORE_PROJECT_ID},
+        FEATURE_FLAG_BILLING=${_FEATURE_BILLING},
+        FEATURE_FLAG_NOTIFICATIONS=${_FEATURE_NOTIFICATIONS},
+        FEATURE_FLAG_LINE_INTEGRATION=${_FEATURE_LINE},
+        FEATURE_FLAG_COMPLETIONS=${_FEATURE_COMPLETIONS},
+        FEATURE_FLAG_COMMUNITY=${_FEATURE_COMMUNITY},
+        FEATURE_FLAG_PROFILE_DETAILS=${_FEATURE_PROFILE_DETAILS},
+        ALLOW_DEV_IMPERSONATION=${_ALLOW_DEV_IMPERSONATION}
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}

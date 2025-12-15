@@ -120,9 +120,26 @@ export default function App(): JSX.Element {
               <Route path="/profile" element={<Profile />} />
               <Route
                 path="/settings/notifications"
-                element={<NotificationSettingsPage />}
+                element={
+                  <ProtectedFeature
+                    flag="notifications"
+                    fallback={<div className="main-scroll">通知設定は現在無効です。</div>}
+                  >
+                    <NotificationSettingsPage />
+                  </ProtectedFeature>
+                }
               />
-              <Route path="/billing" element={<BillingPage />} />
+              <Route
+                path="/billing"
+                element={
+                  <ProtectedFeature
+                    flag="billing"
+                    fallback={<div className="main-scroll">プラン管理は現在非表示です。</div>}
+                  >
+                    <BillingPage />
+                  </ProtectedFeature>
+                }
+              />
             </Route>
           </Routes>
         </BrowserRouter>

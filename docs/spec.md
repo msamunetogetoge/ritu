@@ -20,6 +20,11 @@ Architecture】【RITU_BE_API_Design.md】を統合し、開発でそのまま�
 - 配信：**Firebase Hosting (CDN/SSL付)**
 - 将来的に：**iOS / Android / Tauri** へ拡張予定（UIとAPIを共通化）
 
+### 開発環境の一時的な非表示機能
+
+- Cloud Run 開発環境では Feature Flag をデフォルトで OFF にし、LINE通知・課金設定・完了チェックを UI から隠す。
+- 必要に応じて環境変数で再有効化（バックエンド: `FEATURE_FLAG_*`、フロント: `VITE_FF_*`）。
+
 ### 技術スタック
 
 | 区分         | 技術                           | 説明                                     |

@@ -18,6 +18,12 @@ import { CommunityService } from "./src/services/community-service.ts";
 // Initialize Logger
 await setupLogger();
 
+function readFlag(envName: string, fallback: boolean): boolean {
+  const raw = Deno.env.get(envName);
+  if (raw === undefined) return fallback;
+  return raw.toLowerCase() === "true";
+}
+
 function createFirestoreClient(): FirestoreClient | null {
   const projectId = Deno.env.get("FIRESTORE_PROJECT_ID") ??
     Deno.env.get("GOOGLE_CLOUD_PROJECT");
@@ -64,15 +70,20 @@ const userService = new UserService({ repository: userRepo });
 const communityService = new CommunityService({ repository: communityRepo });
 
 // Initialize Notification Worker
+const lineEnabled = readFlag("FEATURE_FLAG_LINE_INTEGRATION", false);
+const notificationsEnabled = readFlag("FEATURE_FLAG_NOTIFICATIONS", false);
 const lineChannelAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "";
-if (!lineChannelAccessToken) {
+if (lineEnabled && !lineChannelAccessToken) {
   console.warn("[Notification] LINE_CHANNEL_ACCESS_TOKEN is not set. Falling back to mock send.");
 }
 const lineService = new LineService(lineChannelAccessToken);
 const notificationWorker = new NotificationWorker(userRepo, routineRepo, lineService);
 
-// Start Worker (only if allowed or in specific env? For now always)
-notificationWorker.start();
+if (lineEnabled && notificationsEnabled) {
+  notificationWorker.start();
+} else {
+  console.info(`[Notification] Disabled (line=${lineEnabled}, notifications=${notificationsEnabled})`);
+}
 
 const app = createApp({
   routineService,
@@ -81,6 +92,7 @@ const app = createApp({
   routineRepository: routineRepo,
   userRepository: userRepo,
   communityRepository: communityRepo,
+  enableLineRoutes: lineEnabled,
 });
 
 /* Cloud Run想定の単純なHTTPエントリーポイント。 */

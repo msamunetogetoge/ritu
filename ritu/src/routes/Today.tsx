@@ -9,9 +9,13 @@ import {
   type RoutineRecord,
 } from "../services/routine-service.ts";
 import { useAuth } from "../context/AuthContext.tsx";
+import { useFeatureFlags } from "../context/FeatureFlagContext.tsx";
 
 export default function Today(): JSX.Element {
   const { user, loading: authLoading, signIn } = useAuth();
+  const { isEnabled } = useFeatureFlags();
+  const completionsEnabled = isEnabled("completions");
+  const communityEnabled = isEnabled("community");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
 
@@ -31,7 +35,7 @@ export default function Today(): JSX.Element {
     updateRoutine: updateRoutineAction,
     toggleCompletion,
     deleteRoutine: deleteRoutineAction,
-  } = useTodayRoutines(user, today);
+  } = useTodayRoutines(user, today, { enableCompletion: completionsEnabled });
 
   const defaultDialogValue = useMemo<RoutineDialogValue>(
     () => ({
@@ -119,13 +123,14 @@ export default function Today(): JSX.Element {
   );
 
   const handleToggle = useCallback(async (id: Routine["id"]) => {
+    if (!completionsEnabled) return;
     try {
       await toggleCompletion(id);
     } catch (error) {
       console.error("Failed to update completion", error);
       globalThis.alert("完了状態の更新に失敗しました。");
     }
-  }, [toggleCompletion]);
+  }, [toggleCompletion, completionsEnabled]);
 
   const handleDeleteRoutine = useCallback(async (id: Routine["id"]) => {
     const target = routines.find((routine) => routine.id === id);
@@ -234,9 +239,11 @@ export default function Today(): JSX.Element {
             <RoutineCard
               key={routine.id}
               routine={routine}
-              onToggle={handleToggle}
+              onToggle={completionsEnabled ? handleToggle : undefined}
               onEdit={handleOpenEditDialog}
               onDelete={handleDeleteRoutine}
+              showCompletionButton={completionsEnabled}
+              showAutoShare={communityEnabled}
               disabled={isLoading || pendingRoutineIds.has(routine.id) ||
                 updatingRoutineId === routine.id ||
                 deletingRoutineIds.has(routine.id)}
@@ -279,31 +286,39 @@ export default function Today(): JSX.Element {
           : null}
       </div>
 
-      <footer className="footer" aria-label="今日の達成率">
-        <span
-          aria-hidden="true"
-          className="flame"
-          style={{ transform: `scale(${flameScale})` }}
-        >
-          🔥
-        </span>
-        <span className="muted">今日の達成率</span>
-        <div
-          className="progress"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={completion.rate}
-          aria-label="今日の完了率"
-        >
-          <span style={{ transform: `scaleX(${completion.rate / 100})` }}>
-          </span>
-          <span className="visually-hidden">
-            {`${completion.rate}% 完了`}
-          </span>
-        </div>
-        <span className="rate">{`${completion.rate}%`}</span>
-      </footer>
+      {completionsEnabled
+        ? (
+          <footer className="footer" aria-label="今日の達成率">
+            <span
+              aria-hidden="true"
+              className="flame"
+              style={{ transform: `scale(${flameScale})` }}
+            >
+              🔥
+            </span>
+            <span className="muted">今日の達成率</span>
+            <div
+              className="progress"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={completion.rate}
+              aria-label="今日の完了率"
+            >
+              <span style={{ transform: `scaleX(${completion.rate / 100})` }}>
+              </span>
+              <span className="visually-hidden">
+                {`${completion.rate}% 完了`}
+              </span>
+            </div>
+            <span className="rate">{`${completion.rate}%`}</span>
+          </footer>
+        )
+        : (
+          <footer className="footer" aria-label="開発モード案内">
+            <span className="muted">完了チェックは開発環境では非表示です</span>
+          </footer>
+        )}
 
       <RoutineDialog
         mode="create"
