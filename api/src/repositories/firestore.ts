@@ -22,6 +22,12 @@ interface FirestoreRoutineRepositoryOptions {
 }
 
 const ROUTINE_COLLECTION = "routines";
+const deletedAtIsNullFilter = {
+  unaryFilter: {
+    field: { fieldPath: "deletedAt" },
+    op: "IS_NULL",
+  },
+};
 
 export class FirestoreRoutineRepository implements RoutineRepository {
   #client: FirestoreClient;
@@ -49,13 +55,7 @@ export class FirestoreRoutineRepository implements RoutineRepository {
               value: { stringValue: userId },
             },
           },
-          {
-            fieldFilter: {
-              field: { fieldPath: "deletedAt" },
-              op: "EQUAL",
-              value: { nullValue: null },
-            },
-          },
+          deletedAtIsNullFilter,
         ],
       },
     };
@@ -108,13 +108,7 @@ export class FirestoreRoutineRepository implements RoutineRepository {
               value: { stringValue: userId },
             },
           },
-          {
-            fieldFilter: {
-              field: { fieldPath: "deletedAt" },
-              op: "EQUAL",
-              value: { nullValue: null },
-            },
-          },
+          deletedAtIsNullFilter,
         ],
       },
     };
@@ -422,11 +416,7 @@ export class FirestoreRoutineRepository implements RoutineRepository {
                 },
               },
               {
-                fieldFilter: {
-                  field: { fieldPath: "deletedAt" },
-                  op: "EQUAL",
-                  value: { nullValue: null },
-                },
+                ...deletedAtIsNullFilter,
               },
             ],
           },
