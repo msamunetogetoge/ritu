@@ -7,9 +7,11 @@ import { loggerMiddleware } from "./middlewares/logger.ts";
 import { registerRoutineRoutes } from "./routes/routines.ts";
 import { registerUserRoutes } from "./routes/users.ts";
 import { registerCommunityRoutes } from "./routes/community.ts";
+import { registerLineRoutes } from "./routes/line.ts";
 import { RoutineService } from "./services/routine-service.ts";
 import { UserService } from "./services/user-service.ts";
 import { CommunityService } from "./services/community-service.ts";
+import { LineService } from "./services/line-service.ts";
 import { InMemoryRoutineRepository, InMemoryUserRepository, InMemoryCommunityRepository } from "./repositories/in-memory.ts";
 import { ServiceError } from "./services/errors.ts";
 import { FirestoreRoutineRepository } from "./repositories/firestore.ts";
@@ -22,6 +24,7 @@ export interface AppOptions {
   routineService?: RoutineService;
   userService?: UserService;
   communityService?: CommunityService;
+  lineService?: LineService;
   repository?: RoutineRepository; // Simplify: legacy prop
   routineRepository?: RoutineRepository;
   userRepository?: UserRepository;
@@ -40,6 +43,8 @@ export function createApp(options: AppOptions = {}) {
     new UserService({ repository: userRepo });
   const communityService = options.communityService ??
     new CommunityService({ repository: communityRepo });
+  const lineService = options.lineService ??
+    new LineService(Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "");
 
   const app = new Hono<AppEnv>();
 
@@ -56,11 +61,20 @@ export function createApp(options: AppOptions = {}) {
 
   app.get("/v1/health", (c: Context) => c.json({ status: "ok" }));
 
-  app.use("/v1/*", authMiddleware);
+  // app.use("/v1/*", authMiddleware);
+  // Skipped for public webhooks. We will apply auth middleware selectively or use exclusion.
+  app.use("/v1/*", async (c, next) => {
+    if (c.req.path === "/v1/line/webhook") {
+      await next();
+      return;
+    }
+    return authMiddleware(c, next);
+  });
 
   registerRoutineRoutes(app, routineService);
   registerUserRoutes(app, userService);
   registerCommunityRoutes(app, communityService);
+  registerLineRoutes(app, lineService);
 
   app.onError((err: Error, c: Context<AppEnv>) => {
     /* ドメインエラーはコード付きで返し、それ以外は500にフォールバック。 */

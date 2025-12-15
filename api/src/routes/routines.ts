@@ -13,6 +13,11 @@ export function registerRoutineRoutes(
   app: Hono<AppEnv>,
   routineService: RoutineService,
 ) {
+  /**
+   * GET /v1/routines
+   * Lists routines for the authenticated user.
+   * Query: ?page=1&limit=20
+   */
   app.get("/v1/routines", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const page = parsePositiveInteger(c.req.query("page"), 1);
@@ -26,6 +31,11 @@ export function registerRoutineRoutes(
     });
   });
 
+  /**
+   * POST /v1/routines
+   * Creates a new routine.
+   * Body: RoutineCreateInput
+   */
   app.post(
     "/v1/routines",
     validator("json", (body: unknown, c: Context<AppEnv>) => {
@@ -42,6 +52,10 @@ export function registerRoutineRoutes(
     },
   );
 
+  /**
+   * GET /v1/routines/:id
+   * Gets details of a specific routine.
+   */
   app.get("/v1/routines/:id", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const id = c.req.param("id");
@@ -49,6 +63,11 @@ export function registerRoutineRoutes(
     return c.json(routine);
   });
 
+  /**
+   * PATCH /v1/routines/:id
+   * Updates an existing routine.
+   * Body: RoutineUpdateInput
+   */
   app.patch(
     "/v1/routines/:id",
     validator("json", (body: unknown, c: Context<AppEnv>) => {
@@ -66,12 +85,20 @@ export function registerRoutineRoutes(
     },
   );
 
+  /**
+   * DELETE /v1/routines/:id
+   * Soft-deletes a routine.
+   */
   app.delete("/v1/routines/:id", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     await routineService.deleteRoutine(userId, c.req.param("id"));
     return c.body(null, 204);
   });
 
+  /**
+   * POST /v1/routines/:id/restore
+   * Restores a soft-deleted routine.
+   */
   app.post("/v1/routines/:id/restore", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const restored = await routineService.restoreRoutine(
@@ -81,6 +108,11 @@ export function registerRoutineRoutes(
     return c.json(restored);
   });
 
+  /**
+   * GET /v1/routines/:id/completions
+   * Lists completions (history) for a routine.
+   * Query: ?from=YYYY-MM-DD&to=YYYY-MM-DD
+   */
   app.get("/v1/routines/:id/completions", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const id = c.req.param("id");
@@ -92,6 +124,11 @@ export function registerRoutineRoutes(
     return c.json({ items });
   });
 
+  /**
+   * POST /v1/routines/:id/completions
+   * Marks a routine as completed for a specific date.
+   * Body: { date: "YYYY-MM-DD" }
+   */
   app.post(
     "/v1/routines/:id/completions",
     validator("json", (body: unknown, c: Context<AppEnv>) => {
@@ -115,6 +152,10 @@ export function registerRoutineRoutes(
     },
   );
 
+  /**
+   * DELETE /v1/routines/:id/completions/:date
+   * Removes a completion for a specific date (un-check).
+   */
   app.delete("/v1/routines/:id/completions/:date", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const id = c.req.param("id");

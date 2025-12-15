@@ -5,6 +5,10 @@ import type { CommunityService } from "../services/community-service.ts";
 import type { CommentCreateInput, PostCreateInput } from "../types.ts";
 
 export function registerCommunityRoutes(app: Hono<AppEnv>, service: CommunityService) {
+  /**
+   * GET /v1/feed
+   * Returns a list of posts for the community feed.
+   */
   app.get("/v1/feed", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const posts = await service.getFeed(userId);
@@ -14,6 +18,10 @@ export function registerCommunityRoutes(app: Hono<AppEnv>, service: CommunitySer
     // For now: items: posts.
   });
 
+  /**
+   * POST /v1/posts
+   * Creates a new post to share a routine update.
+   */
   app.post(
     "/v1/posts",
     validator("json", (body: unknown, c: Context<AppEnv>) => {
@@ -38,6 +46,10 @@ export function registerCommunityRoutes(app: Hono<AppEnv>, service: CommunitySer
   );
 
   // Like (Toggle)
+  /**
+   * POST /v1/posts/:postId/likes
+   * Toggles like status on a post.
+   */
   app.post("/v1/posts/:postId/likes", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const postId = c.req.param("postId");
@@ -46,12 +58,20 @@ export function registerCommunityRoutes(app: Hono<AppEnv>, service: CommunitySer
   });
 
   // Comments
+  /**
+   * GET /v1/posts/:postId/comments
+   * Returns a list of comments for a specific post.
+   */
   app.get("/v1/posts/:postId/comments", async (c: Context<AppEnv>) => {
     const postId = c.req.param("postId");
     const comments = await service.listComments(postId);
     return c.json({ items: comments });
   });
 
+  /**
+   * POST /v1/posts/:postId/comments
+   * Adds a comment to a post.
+   */
   app.post(
     "/v1/posts/:postId/comments",
     validator("json", (body: unknown, c: Context<AppEnv>) => {

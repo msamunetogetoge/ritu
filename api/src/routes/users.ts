@@ -4,6 +4,11 @@ import { type UserService } from "../services/user-service.ts";
 import type { UserUpdateInput } from "../types.ts";
 
 export function registerUserRoutes(app: Hono<AppEnv>, service: UserService) {
+  /**
+   * GET /v1/users/me
+   * Returns the authenticated user's profile.
+   * Throws 404 if profile not found.
+   */
   app.get("/v1/users/me", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     try {
@@ -21,6 +26,11 @@ export function registerUserRoutes(app: Hono<AppEnv>, service: UserService) {
     }
   });
 
+  /**
+   * PATCH /v1/users/me
+   * Updates the authenticated user's profile.
+   * Body: UserUpdateInput
+   */
   app.patch("/v1/users/me", async (c: Context<AppEnv>) => {
     const userId = c.get("userId");
     const body = await c.req.json<UserUpdateInput>();
