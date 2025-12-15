@@ -1,0 +1,24 @@
+# Files/folders to skip when uploading build context
+.git
+.gitignore
+.dockerignore
+.gcloudignore
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+node_modules
+**/node_modules
+dist
+**/dist
+deno_dir
+.deno
+.cache
+.deno_cache
+coverage
+**/coverage
+*.log
+firebase-debug.log
+firestore-debug.log
+.env
+.env.*
