@@ -59,7 +59,7 @@ export async function fetchWithAuth(
 }
 
 export async function getLineConfig(): Promise<{ friendUrl: string; friendQr: string }> {
-  const res = await fetchWithAuth("/v1/line/config");
+  const res = await fetchWithAuth("/line/config");
   if (!res.ok) {
     throw new Error("Failed to fetch LINE config");
   }

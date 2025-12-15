@@ -51,7 +51,7 @@ export function createApp(options: AppOptions = {}) {
   const app = new Hono<AppEnv>();
 
   app.use("*", cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"],
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://ritu-9cfb0.web.app", "https://ritu-9cfb0.firebaseapp.com"],
     allowHeaders: ["Content-Type", "Authorization", "X-User-Id"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
