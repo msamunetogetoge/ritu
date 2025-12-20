@@ -1,16 +1,23 @@
 import { type JSX, useEffect, useState } from "react";
-import { getMyProfile, updateMyProfile } from "../services/user-service.ts";
+import {
+  getMyProfile,
+  linkLineLogin,
+  updateMyProfile,
+} from "../services/user-service.ts";
 import { getLineConfig } from "../services/api-client.ts";
+import { getLineLoginToken } from "../lib/line-login.ts";
 import { useAuth } from "../context/AuthContext.tsx";
 
 export default function NotificationSettingsPage(): JSX.Element {
   const { user: authUser } = useAuth();
-  const [emailEnabled, setEmailEnabled] = useState(false);
   const [lineEnabled, setLineEnabled] = useState(false);
-  const [scheduleTime, setScheduleTime] = useState("09:00");
-  const [lineConfig, setLineConfig] = useState<{ friendUrl: string; friendQr: string } | null>(null);
+  const [lineUserId, setLineUserId] = useState<string | null>(null);
+  const [lineConfig, setLineConfig] = useState<
+    { friendUrl: string; friendQr: string } | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,17 +33,20 @@ export default function NotificationSettingsPage(): JSX.Element {
         getLineConfig().catch(() => ({ friendUrl: "", friendQr: "" })),
       ]);
       // u.notificationSettings might be undefined
-      const settings = u.notificationSettings || { emailEnabled: false, lineEnabled: false, scheduleTime: "09:00" };
-      setEmailEnabled(settings.emailEnabled ?? false);
+      const settings = u.notificationSettings || {
+        emailEnabled: false,
+        lineEnabled: false,
+        lineUserId: null,
+      };
       setLineEnabled(settings.lineEnabled ?? false);
-      setScheduleTime(settings.scheduleTime ?? "09:00");
+      setLineUserId(settings.lineUserId ?? null);
       setLineConfig(config);
     } catch (e: unknown) {
-        if (e instanceof Error) {
-            setError(e.message);
-        } else {
-            setError(String(e));
-        }
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError(String(e));
+      }
     } finally {
       setLoading(false);
     }
@@ -46,23 +56,47 @@ export default function NotificationSettingsPage(): JSX.Element {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    if (lineEnabled && !lineUserId) {
+      setError("LINEログインで連携してください。");
+      setSaving(false);
+      return;
+    }
     try {
       await updateMyProfile({
         notificationSettings: {
-          emailEnabled,
           lineEnabled,
-          scheduleTime,
+          lineUserId,
         },
       });
       alert("設定を保存しました");
     } catch (e: unknown) {
-        if (e instanceof Error) {
-            setError(e.message);
-        } else {
-            setError(String(e));
-        }
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError(String(e));
+      }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLineLogin = async () => {
+    setLinking(true);
+    setError(null);
+    try {
+      const { idToken } = await getLineLoginToken();
+      const result = await linkLineLogin(idToken);
+      setLineUserId(result.lineUserId);
+      setLineEnabled(true);
+      alert("LINEと連携しました。必要に応じて他の設定も保存してください。");
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError(String(e));
+      }
+    } finally {
+      setLinking(false);
     }
   };
 
@@ -74,55 +108,66 @@ export default function NotificationSettingsPage(): JSX.Element {
       <div className="settings-container">
         <h1>通知設定</h1>
         {error && <p className="error">{error}</p>}
-        
+
         <form onSubmit={handleSave} className="settings-form">
-          <div className="setting-group">
-            <h3>通知タイミング</h3>
-            <label>
-                毎日
-                <input 
-                    type="time" 
-                    value={scheduleTime} 
-                    onChange={(e) => setScheduleTime(e.target.value)} 
-                />
-                に通知
-            </label>
-          </div>
-
-          <div className="setting-group">
-            <h3>メール通知</h3>
-            <label className="toggle-label">
-              <input 
-                type="checkbox" 
-                checked={emailEnabled} 
-                onChange={(e) => setEmailEnabled(e.target.checked)} 
-              />
-              有効にする
-            </label>
-          </div>
-
           <div className="setting-group">
             <h3>LINE通知</h3>
             <label className="toggle-label">
-              <input 
-                type="checkbox" 
-                checked={lineEnabled} 
-                onChange={(e) => setLineEnabled(e.target.checked)} 
+              <input
+                type="checkbox"
+                checked={lineEnabled}
+                onChange={(e) => setLineEnabled(e.target.checked)}
               />
               有効にする
             </label>
+
+            <div className="line-status">
+              <div>
+                <p className="note">
+                  {lineUserId
+                    ? `連携済み: ${lineUserId}`
+                    : "LINEログインで連携してください。"}
+                </p>
+                {!lineUserId && (
+                  <p className="note">
+                    LINE通知をオンにするには連携が必要です。
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={handleLineLogin}
+                disabled={linking}
+              >
+                {linking
+                  ? "連携中..."
+                  : lineUserId
+                  ? "LINE再連携"
+                  : "LINEログインして連携"}
+              </button>
+            </div>
 
             {lineConfig && (
               <div className="line-friend-section">
                 {lineConfig.friendQr && (
-                    <div className="qr-container">
-                        <img src={lineConfig.friendQr} alt="LINE QR Code" className="qr-code" />
-                    </div>
+                  <div className="qr-container">
+                    <img
+                      src={lineConfig.friendQr}
+                      alt="LINE QR Code"
+                      className="qr-code"
+                    />
+                  </div>
                 )}
                 {lineConfig.friendUrl && (
-                    <a href={lineConfig.friendUrl} target="_blank" rel="noopener noreferrer" className="btn-line">
-                        LINEで友だち追加
-                    </a>
+                  <a
+                    href={lineConfig.friendUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-line"
+                  >
+                    LINEで友だち追加
+                  </a>
                 )}
                 {!lineConfig.friendUrl && !lineConfig.friendQr && (
                   <p className="note">LINE連携設定が読み込めませんでした</p>
@@ -137,21 +182,25 @@ export default function NotificationSettingsPage(): JSX.Element {
         </form>
       </div>
 
-      <style>{`
+      <style>
+        {`
         .settings-container { padding: 1rem; max-width: 600px; margin: 0 auto; }
         .settings-form { display: flex; flex-direction: column; gap: 2rem; }
         .setting-group { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; background: #222; border-radius: 8px; }
         .setting-group h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #ddd; }
         .toggle-label { display: flex; align-items: center; gap: 0.5rem; }
         .line-friend-section { margin-top: 1rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; padding-top: 1rem; border-top: 1px solid #444; }
+        .line-status { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-top: 0.5rem; }
+        .btn-outline { background: transparent; color: #06c755; border: 1px solid #06c755; padding: 0.5rem 1rem; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
         .qr-container { background: white; padding: 0.5rem; border-radius: 8px; }
         .qr-code { width: 150px; height: 150px; object-fit: contain; display: block; }
         .btn-line { background: #06c755; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 0.9rem; display: inline-block; }
         .btn-primary { background: #fee804; color: black; border: none; padding: 1rem; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
         .main-scroll { padding-bottom: 5rem; }
         .note { color: #888; font-size: 0.8rem; }
-        input[type="time"] { padding: 0.3rem; border-radius: 4px; border: 1px solid #444; background: #333; color: white; margin: 0 0.5rem; }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 }

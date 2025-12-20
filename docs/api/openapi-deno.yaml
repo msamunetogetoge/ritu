@@ -35,7 +35,16 @@ components:
         photoUrl: { type: string, nullable: true }
         locale: { type: string }
         timezone: { type: string }
+        notificationSettings:
+          $ref: '#/components/schemas/NotificationSettings'
         createdAt: { type: string, format: date-time }
+    NotificationSettings:
+      type: object
+      properties:
+        emailEnabled: { type: boolean, default: false }
+        lineEnabled: { type: boolean, default: false }
+        lineUserId: { type: string, nullable: true }
+        scheduleTime: { type: string, description: "HH:mm" }
     Routine:
       type: object
       required: [id, userId, title, schedule, visibility, createdAt]
@@ -104,6 +113,14 @@ components:
         payload: { type: object, additionalProperties: true }
         isRead: { type: boolean }
         createdAt: { type: string, format: date-time }
+    LineLinkResponse:
+      type: object
+      required: [lineUserId, user]
+      properties:
+        lineUserId: { type: string, description: "LINE Messaging API userId (from LINE Login)" }
+        expiresAt: { type: integer, format: int64, nullable: true, description: "IDトークンの有効期限 (ms)" }
+        issuer: { type: string, nullable: true }
+        user: { $ref: '#/components/schemas/User' }
 security:
   - bearerAuth: []
 paths:
@@ -137,6 +154,27 @@ paths:
       parameters: [{ name: userId, in: path, required: true, schema: { type: string } }]
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+  /line/login:
+    post:
+      summary: Link LINE Login
+      description: Verify LINE Login ID token and store the LINE userId for notifications.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken: { type: string, description: "LINE Login ID token from LIFF" }
+      responses:
+        '200':
+          description: Linked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LineLinkResponse' }
+        '400': { description: Invalid token or linking failure }
+        '503': { description: LINE Login not configured }
   /routines:
     get:
       summary: List my routines

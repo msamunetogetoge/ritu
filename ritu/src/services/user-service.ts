@@ -24,6 +24,13 @@ export interface UserUpdateInput {
   isPremium?: boolean;
 }
 
+export interface LineLinkResult {
+  lineUserId: string;
+  user: User;
+  expiresAt?: number;
+  issuer?: string;
+}
+
 export async function getMyProfile(): Promise<User> {
   const response = await fetchWithAuth("/users/me");
   if (!response.ok) {
@@ -33,6 +40,17 @@ export async function getMyProfile(): Promise<User> {
     throw new Error(await response.text());
   }
   return await response.json() as User;
+}
+
+export async function linkLineLogin(idToken: string): Promise<LineLinkResult> {
+  const response = await fetchWithAuth("/line/login", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return await response.json() as LineLinkResult;
 }
 
 export async function updateMyProfile(input: UserUpdateInput): Promise<User> {

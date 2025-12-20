@@ -1,4 +1,4 @@
-import { Hono, type Context } from "hono";
+import { type Context, Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { cors } from "hono/cors";
 import type { AppEnv } from "./middlewares/auth.ts";
@@ -12,11 +12,22 @@ import { RoutineService } from "./services/routine-service.ts";
 import { UserService } from "./services/user-service.ts";
 import { CommunityService } from "./services/community-service.ts";
 import { LineService } from "./services/line-service.ts";
-import { InMemoryRoutineRepository, InMemoryUserRepository, InMemoryCommunityRepository } from "./repositories/in-memory.ts";
+import { LineLoginService } from "./services/line-login-service.ts";
+import {
+  InMemoryCommunityRepository,
+  InMemoryRoutineRepository,
+  InMemoryUserRepository,
+} from "./repositories/in-memory.ts";
 import { ServiceError } from "./services/errors.ts";
 import { FirestoreRoutineRepository } from "./repositories/firestore.ts";
-import { FirestoreUserRepository, type UserRepository } from "./repositories/user-repository.ts";
-import { FirestoreCommunityRepository, type CommunityRepository } from "./repositories/community-repository.ts";
+import {
+  FirestoreUserRepository,
+  type UserRepository,
+} from "./repositories/user-repository.ts";
+import {
+  type CommunityRepository,
+  FirestoreCommunityRepository,
+} from "./repositories/community-repository.ts";
 import { FirestoreClient } from "./lib/firestore-client.ts";
 import type { RoutineRepository } from "./repositories/routine-repository.ts";
 
@@ -25,6 +36,7 @@ export interface AppOptions {
   userService?: UserService;
   communityService?: CommunityService;
   lineService?: LineService;
+  lineLoginService?: LineLoginService;
   repository?: RoutineRepository; // Simplify: legacy prop
   routineRepository?: RoutineRepository;
   userRepository?: UserRepository;
@@ -34,9 +46,11 @@ export interface AppOptions {
 
 /* createAppはHonoインスタンスを組み立て、認証・ルーティング・エラーハンドリングを束ねる。 */
 export function createApp(options: AppOptions = {}) {
-  const routineRepo = options.routineRepository ?? options.repository ?? createDefaultRoutineRepository();
+  const routineRepo = options.routineRepository ?? options.repository ??
+    createDefaultRoutineRepository();
   const userRepo = options.userRepository ?? createDefaultUserRepository();
-  const communityRepo = options.communityRepository ?? createDefaultCommunityRepository();
+  const communityRepo = options.communityRepository ??
+    createDefaultCommunityRepository();
   const enableLineRoutes = options.enableLineRoutes ?? true;
 
   const routineService = options.routineService ??
@@ -47,17 +61,27 @@ export function createApp(options: AppOptions = {}) {
     new CommunityService({ repository: communityRepo });
   const lineService = options.lineService ??
     new LineService(Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "");
+  const lineLoginService = options.lineLoginService ??
+    new LineLoginService(Deno.env.get("LINE_LOGIN_CHANNEL_ID") ?? "");
 
   const app = new Hono<AppEnv>();
 
-  app.use("*", cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://ritu-9cfb0.web.app", "https://ritu-9cfb0.firebaseapp.com"],
-    allowHeaders: ["Content-Type", "Authorization", "X-User-Id"],
-    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-    credentials: true,
-  }));
+  app.use(
+    "*",
+    cors({
+      origin: [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://ritu-9cfb0.web.app",
+        "https://ritu-9cfb0.firebaseapp.com",
+      ],
+      allowHeaders: ["Content-Type", "Authorization", "X-User-Id"],
+      allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      exposeHeaders: ["Content-Length"],
+      maxAge: 600,
+      credentials: true,
+    }),
+  );
 
   app.use("*", loggerMiddleware);
 
@@ -77,13 +101,16 @@ export function createApp(options: AppOptions = {}) {
   registerUserRoutes(app, userService);
   registerCommunityRoutes(app, communityService);
   if (enableLineRoutes) {
-    registerLineRoutes(app, lineService);
+    registerLineRoutes(app, lineService, userService, lineLoginService);
   }
 
   app.onError((err: Error, c: Context<AppEnv>) => {
     /* ドメインエラーはコード付きで返し、それ以外は500にフォールバック。 */
     if (err instanceof ServiceError) {
-      return c.json({ message: err.message, code: err.code }, err.status as ContentfulStatusCode);
+      return c.json(
+        { message: err.message, code: err.code },
+        err.status as ContentfulStatusCode,
+      );
     }
     console.error(err);
     return c.json({ message: "internal server error" }, 500);
@@ -95,10 +122,10 @@ export function createApp(options: AppOptions = {}) {
 function createDefaultRoutineRepository(): RoutineRepository {
   const forceMemory = Deno.env.get("ROUTINE_REPOSITORY") === "memory"; // Keep legacy env for now
   if (forceMemory) return new InMemoryRoutineRepository();
-  
+
   const client = createFirestoreClient();
   if (client) {
-     return new FirestoreRoutineRepository({ client });
+    return new FirestoreRoutineRepository({ client });
   }
   return new InMemoryRoutineRepository();
 }
@@ -108,8 +135,10 @@ function createDefaultUserRepository(): UserRepository {
   if (client) {
     return new FirestoreUserRepository({ client });
   }
-  
-  console.warn("No Firestore client for UserRepo. Using InMemoryUserRepository.");
+
+  console.warn(
+    "No Firestore client for UserRepo. Using InMemoryUserRepository.",
+  );
   return new InMemoryUserRepository();
 }
 
@@ -118,7 +147,9 @@ function createDefaultCommunityRepository(): CommunityRepository {
   if (client) {
     return new FirestoreCommunityRepository({ client });
   }
-  console.warn("No Firestore client for CommunityRepo. Using InMemoryCommunityRepository.");
+  console.warn(
+    "No Firestore client for CommunityRepo. Using InMemoryCommunityRepository.",
+  );
   return new InMemoryCommunityRepository();
 }
 
@@ -127,7 +158,7 @@ function createFirestoreClient(): FirestoreClient | null {
     Deno.env.get("GOOGLE_CLOUD_PROJECT");
 
   if (!projectId) {
-     return null;
+    return null;
   }
 
   const emulatorHost = Deno.env.get("FIRESTORE_EMULATOR_HOST");

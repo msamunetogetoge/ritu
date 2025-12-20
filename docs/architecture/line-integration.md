@@ -21,3 +21,7 @@ sequenceDiagram
   DB-->>Fn: OK
 
   LIFF->>User: 連携完了表示
+```
+
+- API エンドポイント: `POST /v1/line/login`（認証必須）で LINE Login の ID トークンを検証し、`users/{uid}.notificationSettings.lineUserId` を保存する。
+- 必須環境変数: バックエンド `LINE_LOGIN_CHANNEL_ID`（LINE Login Channel ID）、フロントエンド `VITE_LINE_LIFF_ID`（LIFF ID）。

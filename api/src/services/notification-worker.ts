@@ -7,6 +7,7 @@ export class NotificationWorker {
   #routineRepository: RoutineRepository;
   #lineService: LineService;
   #forcedRecipient?: string;
+  #isLocal = !Deno.env.get("K_SERVICE");
 
   constructor(
     userRepository: UserRepository,
@@ -33,12 +34,17 @@ export class NotificationWorker {
       hour: "2-digit",
       minute: "2-digit",
     });
+    if (this.#isLocal) {
+      console.debug(`[Notification][DEBUG] tick at ${time}`);
+    }
 
     try {
       const routines = await this.#routineRepository.listByScheduleTime(time);
       if (routines.length === 0) return;
 
-      console.info(`[Notification] Found ${routines.length} routines for time ${time}`);
+      console.info(
+        `[Notification] Found ${routines.length} routines for time ${time}`,
+      );
 
       const byUser = new Map<string, string[]>();
       for (const routine of routines) {
@@ -50,7 +56,9 @@ export class NotificationWorker {
       for (const [userId, routineTitles] of byUser.entries()) {
         const user = await this.#userRepository.getById(userId);
         const target = this.#forcedRecipient ??
-          (user?.notificationSettings?.lineEnabled ? user.notificationSettings.lineUserId : null);
+          (user?.notificationSettings?.lineEnabled
+            ? user.notificationSettings.lineUserId
+            : null);
         if (!target) {
           console.info(
             `[Notification] Skip user=${userId} (no lineEnabled/lineUserId, forced=${
@@ -61,6 +69,11 @@ export class NotificationWorker {
         }
 
         for (const title of routineTitles) {
+          if (this.#isLocal) {
+            console.debug(
+              `[Notification][DEBUG] send target=${target} title="${title}" user=${userId}`,
+            );
+          }
           console.info(
             `[Notification] Sending to user=${userId} target=${target} title="${title}" time=${time}`,
           );

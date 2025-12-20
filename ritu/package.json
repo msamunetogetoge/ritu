@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@line/liff": "^2.27.3",
     "firebase": "^12.4.0",
     "firebase-tools": "^14.20.0",
     "react": "^19.1.1",
