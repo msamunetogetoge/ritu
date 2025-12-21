@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from "react";
 import {
+  type NotificationSettings,
   getMyProfile,
   linkLineLogin,
   updateMyProfile,
@@ -12,6 +13,9 @@ export default function NotificationSettingsPage(): JSX.Element {
   const { user: authUser } = useAuth();
   const [lineEnabled, setLineEnabled] = useState(false);
   const [lineUserId, setLineUserId] = useState<string | null>(null);
+  const [baseNotificationSettings, setBaseNotificationSettings] = useState<
+    NotificationSettings | null
+  >(null);
   const [lineConfig, setLineConfig] = useState<
     { friendUrl: string; friendQr: string } | null
   >(null);
@@ -38,6 +42,7 @@ export default function NotificationSettingsPage(): JSX.Element {
         lineEnabled: false,
         lineUserId: null,
       };
+      setBaseNotificationSettings(settings);
       setLineEnabled(settings.lineEnabled ?? false);
       setLineUserId(settings.lineUserId ?? null);
       setLineConfig(config);
@@ -62,12 +67,17 @@ export default function NotificationSettingsPage(): JSX.Element {
       return;
     }
     try {
-      await updateMyProfile({
-        notificationSettings: {
-          lineEnabled,
-          lineUserId,
-        },
-      });
+      const mergedSettings: NotificationSettings = {
+        ...(baseNotificationSettings ?? {
+          emailEnabled: false,
+          lineEnabled: false,
+          lineUserId: null,
+        }),
+        lineEnabled,
+        lineUserId,
+      };
+      await updateMyProfile({ notificationSettings: mergedSettings });
+      setBaseNotificationSettings(mergedSettings);
       alert("設定を保存しました");
     } catch (e: unknown) {
       if (e instanceof Error) {
