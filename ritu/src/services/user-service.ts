@@ -5,6 +5,7 @@ export interface NotificationSettings {
   lineEnabled: boolean;
   lineUserId?: string | null;
   scheduleTime?: string;
+  lineLoginContext?: LineLoginContext;
 }
 
 export interface User {
@@ -24,6 +25,21 @@ export interface UserUpdateInput {
   isPremium?: boolean;
 }
 
+export interface LineLinkResult {
+  lineUserId: string;
+  user: User;
+  expiresAt?: number;
+  issuer?: string;
+}
+
+/** LINE Login のリダイレクトURLに付与されるパラメータ。 */
+export interface LineLoginContext {
+  code?: string;
+  state?: string;
+  liffClientId?: string;
+  liffRedirectUri?: string;
+}
+
 export async function getMyProfile(): Promise<User> {
   const response = await fetchWithAuth("/users/me");
   if (!response.ok) {
@@ -33,6 +49,23 @@ export async function getMyProfile(): Promise<User> {
     throw new Error(await response.text());
   }
   return await response.json() as User;
+}
+
+/**
+ * LINE Login の ID トークンを送信し、必要ならリダイレクト情報も保存する。
+ */
+export async function linkLineLogin(
+  idToken: string,
+  lineLoginContext?: LineLoginContext | null,
+): Promise<LineLinkResult> {
+  const response = await fetchWithAuth("/line/login", {
+    method: "POST",
+    body: JSON.stringify({ idToken, lineLoginContext }),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return await response.json() as LineLinkResult;
 }
 
 export async function updateMyProfile(input: UserUpdateInput): Promise<User> {

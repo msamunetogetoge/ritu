@@ -4,7 +4,9 @@ export class LineService {
   constructor(channelAccessToken: string) {
     this.#channelAccessToken = channelAccessToken;
     if (!channelAccessToken) {
-      console.warn("[LineService] LINE_CHANNEL_ACCESS_TOKEN is empty. Using mock send.");
+      console.warn(
+        "[LineService] LINE_MESSAGING_CHANNEL_ACCESS_TOKEN is empty. Using mock send.",
+      );
     }
   }
 

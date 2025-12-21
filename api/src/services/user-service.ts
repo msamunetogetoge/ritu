@@ -1,4 +1,4 @@
-import type { User, UserUpdateInput } from "../types.ts";
+import type { LineLoginContext, User, UserUpdateInput } from "../types.ts";
 import type { UserRepository } from "../repositories/user-repository.ts";
 import { notFound, validationError } from "./errors.ts";
 
@@ -28,7 +28,9 @@ export class UserService {
   }
 
   async updateMe(userId: string, input: UserUpdateInput): Promise<User> {
-    if (input.displayName !== undefined && input.displayName.trim().length === 0) {
+    if (
+      input.displayName !== undefined && input.displayName.trim().length === 0
+    ) {
       throw validationError("display name must not be empty");
     }
 
@@ -39,11 +41,14 @@ export class UserService {
       // Create if not exists (upsert)
       // We need mandatory fields for creation. "displayName" is required.
       if (!safeInput.displayName) {
-        throw notFound("user profile not found and display name required for creation");
+        throw notFound(
+          "user profile not found and display name required for creation",
+        );
       }
       return this.#repository.create(userId, {
         displayName: safeInput.displayName,
         photoUrl: safeInput.photoUrl ?? null,
+        notificationSettings: safeInput.notificationSettings,
       });
     }
 
@@ -54,6 +59,48 @@ export class UserService {
 
     if (!updated) {
       throw notFound("user profile update failed"); // Should not happen if we checked existing
+    }
+    return updated;
+  }
+
+  /**
+   * LINE Login の userId をユーザープロフィールへ紐付ける。
+   * 既存ユーザーがいない場合は、プロフィールを作成して通知設定を保存する。
+   */
+  async linkLineUserId(
+    userId: string,
+    lineUserId: string,
+    lineLoginContext?: LineLoginContext,
+  ): Promise<User> {
+    const sanitizedId = lineUserId.trim();
+    if (!sanitizedId) {
+      throw validationError("lineUserId is required");
+    }
+    const user = await this.#repository.getById(userId);
+    const currentSettings = user?.notificationSettings ??
+      { emailEnabled: false, lineEnabled: false };
+    const mergedSettings = {
+      ...currentSettings,
+      lineEnabled: true,
+      lineUserId: sanitizedId,
+    };
+    if (lineLoginContext) {
+      mergedSettings.lineLoginContext = lineLoginContext;
+    }
+    if (!user) {
+      const displayName = "LINE User";
+      const photoUrl = null;
+      return await this.#repository.create(userId, {
+        displayName,
+        photoUrl,
+        notificationSettings: mergedSettings,
+      });
+    }
+    const updated = await this.#repository.update(userId, {
+      notificationSettings: mergedSettings,
+    });
+    if (!updated) {
+      throw notFound("user profile update failed");
     }
     return updated;
   }

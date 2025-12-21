@@ -84,6 +84,14 @@ Today画面の完了状態を合成します。Firestore エミュレータは�
 Auth で取得した ID トークンがあれば自動で `Authorization: Bearer <token>`
 に差し替えられます。
 
+### LINE 通知 / LINE Login 設定
+
+- LIFF で LINE Login を行い、ID トークンを取得するために `VITE_LINE_LIFF_ID`
+  を設定してください。
+- 通知設定画面の「LINEログインして連携」ボタンから取得した ID トークンを
+  `POST /v1/line/login` に送り、`notificationSettings.lineUserId`
+  を保存します（バックエンド側では `LINE_LOGIN_CHANNEL_ID` が必要です）。
+
 ## コメント方針（フロントエンド）
 
 - コメントは VS Code で視認しやすいよう `/* ... */` のブロック形式で記載します。

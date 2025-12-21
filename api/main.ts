@@ -64,6 +64,18 @@ const communityRepo = client
   ? new FirestoreCommunityRepository({ client })
   : new InMemoryCommunityRepository();
 
+if (userRepo instanceof InMemoryUserRepository) {
+  await userRepo.create("mock-token", {
+    displayName: "Mock User",
+    photoUrl: null,
+    notificationSettings: {
+      emailEnabled: false,
+      lineEnabled: false,
+    },
+    isPremium: false,
+  });
+}
+
 // Initialize Services
 const routineService = new RoutineService({ repository: routineRepo, userRepository: userRepo });
 const userService = new UserService({ repository: userRepo });
@@ -72,9 +84,18 @@ const communityService = new CommunityService({ repository: communityRepo });
 // Initialize Notification Worker
 const lineEnabled = readFlag("FEATURE_FLAG_LINE_INTEGRATION", false);
 const notificationsEnabled = readFlag("FEATURE_FLAG_NOTIFICATIONS", false);
-const lineChannelAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "";
+const legacyLineAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
+const lineChannelAccessToken = Deno.env.get("LINE_MESSAGING_CHANNEL_ACCESS_TOKEN") ??
+  legacyLineAccessToken ?? "";
+if (legacyLineAccessToken) {
+  console.warn(
+    "[Notification] LINE_CHANNEL_ACCESS_TOKEN is deprecated. Use LINE_MESSAGING_CHANNEL_ACCESS_TOKEN.",
+  );
+}
 if (lineEnabled && !lineChannelAccessToken) {
-  console.warn("[Notification] LINE_CHANNEL_ACCESS_TOKEN is not set. Falling back to mock send.");
+  console.warn(
+    "[Notification] LINE_MESSAGING_CHANNEL_ACCESS_TOKEN is not set. Falling back to mock send.",
+  );
 }
 const lineService = new LineService(lineChannelAccessToken);
 const notificationWorker = new NotificationWorker(userRepo, routineRepo, lineService);

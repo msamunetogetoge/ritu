@@ -2,8 +2,8 @@
 
 ## 概要
 
-ユーザーが作成したルーティンに対して、設定した時間にLINE通知を受け取ることができる機能をPoC (Proof
-of Concept) として実装する。 将来的にはGoogle Cloud
+ユーザーが作成したルーティンに対して、設定した時間にLINE通知を受け取ることができる機能をPoC
+(Proof of Concept) として実装する。 将来的にはGoogle Cloud
 Tasksを使用したWebhookモデルへの移行を想定しているが、本フェーズではBackend
 Workerによるポーリング方式を採用する。
 
@@ -17,9 +17,10 @@ Workerによるポーリング方式を採用する。
 
 ### 変更後 (To-Be)
 
-- **通知単位の粒度変更**: ユーザー単位の一括通知ではなく、**ルーティン単位**での通知を可能にする。
-- `Routine` ドキュメントの `schedule` フィールドに `notify: boolean` フラグと `time: string` (HH:MM)
-  を持たせる。
+- **通知単位の粒度変更**:
+  ユーザー単位の一括通知ではなく、**ルーティン単位**での通知を可能にする。
+- `Routine` ドキュメントの `schedule` フィールドに `notify: boolean` フラグと
+  `time: string` (HH:MM) を持たせる。
 - `NotificationWorker`
   は、現在の時間に通知設定がONになっているルーティンを検索し、そのルーティンの所有者に通知を送る。
 
@@ -48,6 +49,11 @@ interface Routine {
 変更なし。ただし、LINE通知を送るために `notificationSettings.lineUserId`
 が設定されている必要がある。
 
+- `lineUserId` は LINE Login の ID トークンを `/v1/line/login`
+  で検証して保存する。
+- 通知タイミングはルーティンごとの `schedule.time`
+  に従い、ユーザー設定画面では時刻やメール通知の設定を行わない。
+
 ## インターフェース設計
 
 ### Frontend (`ritu`)
@@ -59,24 +65,29 @@ interface Routine {
 ### Backend (`api`)
 
 - **Repository層**:
-  - `RoutineRepository.listByScheduleTime(time: string): Promise<Routine[]>` を追加。
+  - `RoutineRepository.listByScheduleTime(time: string): Promise<Routine[]>`
+    を追加。
   - 実装クラス (`FirestoreRoutineRepository`) で、`schedule.time == time` かつ
     `schedule.notify == true` のクエリを実装。
 - **Service/Worker層**:
   - `NotificationWorker`:
-    - 定期実行 (e.g. 1分毎) 時に `RoutineRepository.listByScheduleTime` を呼び出す。
+    - 定期実行 (e.g. 1分毎) 時に `RoutineRepository.listByScheduleTime`
+      を呼び出す。
     - 取得したルーティンリストから `userId` を抽出。
-    - `UserRepository.getById` 等でユーザー情報を取得し、`lineUserId` の有無を確認。
+    - `UserRepository.getById` 等でユーザー情報を取得し、`lineUserId`
+      の有無を確認。
     - 有効なユーザーに対し、`LineService.sendPushMessage` を実行。
-      - 通 知内容はルーティン名をパラメータに含める (例: 「{RoutineName}の時間です！」)。
+      - 通 知内容はルーティン名をパラメータに含める (例:
+        「{RoutineName}の時間です！」)。
       - 同一ユーザーに同刻のルーティンが複数ある場合、まとめて通知するか個別にするかは実装詳細とする（本PoCでは個別送信または単純なループ処理で可）。
 
 ## 必要な環境変数
 
 本PoCを動作させるために以下の環境変数が必要となる。
 
-- `LINE_CHANNEL_ACCESS_TOKEN`: LINE Messaging APIのチャネルアクセストークン。
-- `FIREBASE_SERVICE_ACCOUNT_JSON`: Firestore接続用サービスアカウントキー (JSON文字列)。
+- `LINE_MESSAGING_CHANNEL_ACCESS_TOKEN`: LINE Messaging APIのチャネルアクセストークン。
+- `FIREBASE_SERVICE_ACCOUNT_JSON`: Firestore接続用サービスアカウントキー
+  (JSON文字列)。
   - または `GOOGLE_APPLICATION_CREDENTIALS` (ファイルパス)。
 - `FIRESTORE_PROJECT_ID`: FirebaseプロジェクトID。
 - `LINE_NOTIFICATION_TO` (任意): 配信先を強制するテスト用ID。

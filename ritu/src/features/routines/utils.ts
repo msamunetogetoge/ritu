@@ -15,6 +15,16 @@ export function extractScheduledTime(
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+export function extractNotify(
+  schedule: RoutineRecord["schedule"],
+): boolean | undefined {
+  if (!schedule || typeof schedule !== "object") {
+    return undefined;
+  }
+  const maybeNotify = (schedule as { readonly notify?: unknown }).notify;
+  return typeof maybeNotify === "boolean" ? maybeNotify : undefined;
+}
+
 export function normalizeDialogValue(
   value: RoutineDialogValue,
 ): RoutineDialogValue {

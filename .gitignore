@@ -37,3 +37,8 @@ cov_profile/
 Thumbs.db
 
 .agent/
+
+# LINE local credentials
+line_assertion_private_jwk.json
+line_assertion_public_jwk.json
+line_channel_access_token.json
