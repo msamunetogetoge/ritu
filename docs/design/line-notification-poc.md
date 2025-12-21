@@ -85,7 +85,7 @@ interface Routine {
 
 本PoCを動作させるために以下の環境変数が必要となる。
 
-- `LINE_CHANNEL_ACCESS_TOKEN`: LINE Messaging APIのチャネルアクセストークン。
+- `LINE_MESSAGING_CHANNEL_ACCESS_TOKEN`: LINE Messaging APIのチャネルアクセストークン。
 - `FIREBASE_SERVICE_ACCOUNT_JSON`: Firestore接続用サービスアカウントキー
   (JSON文字列)。
   - または `GOOGLE_APPLICATION_CREDENTIALS` (ファイルパス)。

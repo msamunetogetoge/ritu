@@ -172,9 +172,7 @@ export default function NotificationSettingsPage(): JSX.Element {
             <div className="line-status">
               <div>
                 <p className="note">
-                  {lineUserId
-                    ? `連携済み: ${lineUserId}`
-                    : "LINEログインで連携してください。"}
+                  {lineUserId ? "連携済み" : "LINEログインで連携してください。"}
                 </p>
                 {!lineUserId && (
                   <p className="note">

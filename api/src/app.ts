@@ -60,7 +60,11 @@ export function createApp(options: AppOptions = {}) {
   const communityService = options.communityService ??
     new CommunityService({ repository: communityRepo });
   const lineService = options.lineService ??
-    new LineService(Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "");
+    new LineService(
+      Deno.env.get("LINE_MESSAGING_CHANNEL_ACCESS_TOKEN") ??
+        Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ??
+        "",
+    );
   const lineLoginService = options.lineLoginService ??
     new LineLoginService(Deno.env.get("LINE_LOGIN_CHANNEL_ID") ?? "");
 

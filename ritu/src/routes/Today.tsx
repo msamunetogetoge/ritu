@@ -2,7 +2,7 @@ import { type JSX, useCallback, useMemo, useState } from "react";
 import { RoutineCard } from "../features/routines/components/RoutineCard.tsx";
 import { RoutineDialog } from "../features/routines/components/RoutineDialog.tsx";
 import { useTodayRoutines } from "../features/routines/hooks/useTodayRoutines.ts";
-import { extractScheduledTime } from "../features/routines/utils.ts";
+import { extractNotify, extractScheduledTime } from "../features/routines/utils.ts";
 import type { Routine, RoutineDialogValue } from "../features/routines/types.ts";
 import {
   formatIsoDate,
@@ -41,6 +41,7 @@ export default function Today(): JSX.Element {
     () => ({
       title: "",
       scheduledTime: undefined,
+      notify: false,
       autoShare: false,
       visibility: "private",
     }),
@@ -61,6 +62,7 @@ export default function Today(): JSX.Element {
     return {
       title: editingRoutine.title,
       scheduledTime: extractScheduledTime(editingRoutine.schedule),
+      notify: extractNotify(editingRoutine.schedule) ?? false,
       autoShare: editingRoutine.autoShare,
       visibility: editingRoutine.visibility,
     };

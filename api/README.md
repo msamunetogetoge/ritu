@@ -97,7 +97,7 @@ Firestore に接続できます。
   - `FEATURE_FLAG_COMMUNITY`
   - `FEATURE_FLAG_PROFILE_DETAILS`（プロフィール編集は使うので `true` 推奨）
 - LINE 連携
-  - `LINE_CHANNEL_ACCESS_TOKEN`: Messaging API
+- `LINE_MESSAGING_CHANNEL_ACCESS_TOKEN`: Messaging API
     のチャネルアクセストークン（Push送信に利用）
   - `LINE_CHANNEL_SECRET`: Webhook 署名検証用
   - `LINE_LOGIN_CHANNEL_ID`: LINE Login

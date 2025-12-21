@@ -45,6 +45,14 @@ export async function getLineLoginToken(): Promise<
   if (!idToken) {
     throw new Error("LINEのIDトークンを取得できませんでした。");
   }
+  const tokenExp = parseJwtExp(idToken);
+  if (tokenExp && Date.now() >= tokenExp * 1000) {
+    if ("logout" in liff) {
+      liff.logout();
+    }
+    liff.login({ redirectUri: globalThis.location.href });
+    return new Promise(() => {});
+  }
 
   const lineLoginContext = getLineLoginContextFromUrl();
   return {
@@ -66,4 +74,16 @@ function getLineLoginContextFromUrl(): LineLoginContext | undefined {
     return undefined;
   }
   return { code, state, liffClientId, liffRedirectUri };
+}
+
+function parseJwtExp(token: string): number | null {
+  const [, payload] = token.split(".");
+  if (!payload) return null;
+  try {
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const json = JSON.parse(decoded) as { exp?: number };
+    return typeof json.exp === "number" ? json.exp : null;
+  } catch {
+    return null;
+  }
 }
