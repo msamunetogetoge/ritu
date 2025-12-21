@@ -289,15 +289,7 @@ export class FirestoreRoutineRepository implements RoutineRepository {
       routineId,
     );
 
-    const filters = [
-      {
-        fieldFilter: {
-          field: { fieldPath: "userId" },
-          op: "EQUAL",
-          value: { stringValue: userId },
-        },
-      },
-    ];
+    const filters: Array<{ fieldFilter: Record<string, unknown> }> = [];
 
     if (range?.from) {
       filters.push({
@@ -324,7 +316,7 @@ export class FirestoreRoutineRepository implements RoutineRepository {
     };
     if (filters.length === 1) {
       structuredQuery.where = filters[0];
-    } else {
+    } else if (filters.length > 1) {
       structuredQuery.where = {
         compositeFilter: {
           op: "AND",
