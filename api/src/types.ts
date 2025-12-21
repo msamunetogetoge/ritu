@@ -75,6 +75,15 @@ export interface NotificationSettings {
   lineEnabled: boolean;
   lineUserId?: string | null;
   scheduleTime?: string; // HH:mm
+  lineLoginContext?: LineLoginContext;
+}
+
+/* LINE Login のリダイレクトURLに付与されるパラメータを保存する。 */
+export interface LineLoginContext {
+  code?: string;
+  state?: string;
+  liffClientId?: string;
+  liffRedirectUri?: string;
 }
 /* User represents a user profile in the system. */
 export interface User {

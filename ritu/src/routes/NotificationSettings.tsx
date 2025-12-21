@@ -94,8 +94,8 @@ export default function NotificationSettingsPage(): JSX.Element {
     setLinking(true);
     setError(null);
     try {
-      const { idToken } = await getLineLoginToken();
-      const result = await linkLineLogin(idToken);
+      const { idToken, lineLoginContext } = await getLineLoginToken();
+      const result = await linkLineLogin(idToken, lineLoginContext);
       setLineUserId(result.lineUserId);
       setLineEnabled(true);
       alert("LINEと連携しました。必要に応じて他の設定も保存してください。");

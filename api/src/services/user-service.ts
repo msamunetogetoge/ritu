@@ -1,4 +1,4 @@
-import type { User, UserUpdateInput } from "../types.ts";
+import type { LineLoginContext, User, UserUpdateInput } from "../types.ts";
 import type { UserRepository } from "../repositories/user-repository.ts";
 import { notFound, validationError } from "./errors.ts";
 
@@ -63,22 +63,40 @@ export class UserService {
     return updated;
   }
 
-  async linkLineUserId(userId: string, lineUserId: string): Promise<User> {
+  /**
+   * LINE Login の userId をユーザープロフィールへ紐付ける。
+   * 既存ユーザーがいない場合は、プロフィールを作成して通知設定を保存する。
+   */
+  async linkLineUserId(
+    userId: string,
+    lineUserId: string,
+    profile?: { displayName?: string; photoUrl?: string | null },
+    lineLoginContext?: LineLoginContext,
+  ): Promise<User> {
     const sanitizedId = lineUserId.trim();
     if (!sanitizedId) {
       throw validationError("lineUserId is required");
     }
     const user = await this.#repository.getById(userId);
-    if (!user) {
-      throw notFound("user profile not found");
-    }
-    const currentSettings = user.notificationSettings ??
+    const currentSettings = user?.notificationSettings ??
       { emailEnabled: false, lineEnabled: false };
     const mergedSettings = {
       ...currentSettings,
       lineEnabled: true,
       lineUserId: sanitizedId,
     };
+    if (lineLoginContext) {
+      mergedSettings.lineLoginContext = lineLoginContext;
+    }
+    if (!user) {
+      const displayName = profile?.displayName?.trim() || "LINE User";
+      const photoUrl = profile?.photoUrl ?? null;
+      return await this.#repository.create(userId, {
+        displayName,
+        photoUrl,
+        notificationSettings: mergedSettings,
+      });
+    }
     const updated = await this.#repository.update(userId, {
       notificationSettings: mergedSettings,
     });

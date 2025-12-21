@@ -45,6 +45,14 @@ components:
         lineEnabled: { type: boolean, default: false }
         lineUserId: { type: string, nullable: true }
         scheduleTime: { type: string, description: "HH:mm" }
+        lineLoginContext:
+          type: object
+          nullable: true
+          properties:
+            code: { type: string }
+            state: { type: string }
+            liffClientId: { type: string }
+            liffRedirectUri: { type: string }
     Routine:
       type: object
       required: [id, userId, title, schedule, visibility, createdAt]
@@ -163,10 +171,17 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [idToken]
-              properties:
-                idToken: { type: string, description: "LINE Login ID token from LIFF" }
+                type: object
+                required: [idToken]
+                properties:
+                  idToken: { type: string, description: "LINE Login ID token from LIFF" }
+                  lineLoginContext:
+                    type: object
+                    properties:
+                      code: { type: string }
+                      state: { type: string }
+                      liffClientId: { type: string }
+                      liffRedirectUri: { type: string }
       responses:
         '200':
           description: Linked

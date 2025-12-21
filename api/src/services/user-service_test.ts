@@ -43,6 +43,23 @@ Deno.test("UserService updateMe updates existing user", async () => {
   assertEquals(updated.displayName, "New Name");
 });
 
+Deno.test("UserService linkLineUserId creates user if not exists", async () => {
+  const repository = new InMemoryUserRepository();
+  const service = new UserService({ repository });
+  const userId = "line-user-create";
+
+  const linked = await service.linkLineUserId(userId, "U-line-id", {
+    displayName: "Line User",
+    photoUrl: "http://example.com/line.jpg",
+  });
+
+  assertEquals(linked.id, userId);
+  assertEquals(linked.displayName, "Line User");
+  assertEquals(linked.photoUrl, "http://example.com/line.jpg");
+  assertEquals(linked.notificationSettings?.lineUserId, "U-line-id");
+  assertEquals(linked.notificationSettings?.lineEnabled, true);
+});
+
 Deno.test("UserService linkLineUserId stores id and keeps existing settings", async () => {
   const repository = new InMemoryUserRepository();
   const service = new UserService({ repository });
@@ -57,10 +74,16 @@ Deno.test("UserService linkLineUserId stores id and keeps existing settings", as
     },
   });
 
-  const linked = await service.linkLineUserId(userId, "U-line-id");
+  const linked = await service.linkLineUserId(userId, "U-line-id", undefined, {
+    code: "code-123",
+    state: "state-456",
+    liffClientId: "liff-789",
+    liffRedirectUri: "http://localhost:5173/settings/notifications",
+  });
 
   assertEquals(linked.notificationSettings?.lineUserId, "U-line-id");
   assertEquals(linked.notificationSettings?.lineEnabled, true);
   assertEquals(linked.notificationSettings?.emailEnabled, true);
   assertEquals(linked.notificationSettings?.scheduleTime, "09:00");
+  assertEquals(linked.notificationSettings?.lineLoginContext?.code, "code-123");
 });

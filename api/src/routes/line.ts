@@ -5,6 +5,9 @@ import { LineLoginService } from "../services/line-login-service.ts";
 import { type UserService } from "../services/user-service.ts";
 import { ServiceError } from "../services/errors.ts";
 
+/**
+ * LINE 設定取得・ログイン連携・Webhookをまとめて登録する。
+ */
 export const registerLineRoutes = (
   app: Hono<AppEnv>,
   lineService: LineService,
@@ -33,7 +36,15 @@ export const registerLineRoutes = (
       return c.json({ message: "LINE Login is not configured" }, 503);
     }
     const userId = c.get("userId");
-    const body = await c.req.json<{ idToken?: string }>().catch(() => null);
+    const body = await c.req.json<{
+      idToken?: string;
+      lineLoginContext?: {
+        code?: string;
+        state?: string;
+        liffClientId?: string;
+        liffRedirectUri?: string;
+      };
+    }>().catch(() => null);
     const idToken = body?.idToken;
     if (!idToken) {
       return c.json({ message: "idToken is required" }, 400);
@@ -41,7 +52,15 @@ export const registerLineRoutes = (
 
     try {
       const login = await lineLoginService.verifyIdToken(idToken);
-      const user = await userService.linkLineUserId(userId, login.lineUserId);
+      const user = await userService.linkLineUserId(
+        userId,
+        login.lineUserId,
+        {
+          displayName: login.displayName,
+          photoUrl: login.pictureUrl ?? null,
+        },
+        body?.lineLoginContext,
+      );
       if (isLocal()) {
         console.debug(
           `[LINE Login][DEBUG] linked user=${userId} lineUserId=${login.lineUserId}`,

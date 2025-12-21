@@ -92,6 +92,14 @@ Deno.test("POST /v1/line/login stores lineUserId and returns user", async () => 
     c.set("userId", "user-1");
     await next();
   });
+  let receivedContext:
+    | {
+      code?: string;
+      state?: string;
+      liffClientId?: string;
+      liffRedirectUri?: string;
+    }
+    | undefined;
 
   const mockLineService = {
     getLineConfig: () => ({}),
@@ -99,8 +107,19 @@ Deno.test("POST /v1/line/login stores lineUserId and returns user", async () => 
     handleWebhookEvent: () => Promise.resolve(),
   } as unknown as LineService;
   const mockUserService = {
-    linkLineUserId: (_userId: string, lineUserId: string) =>
-      Promise.resolve({
+    linkLineUserId: (
+      _userId: string,
+      lineUserId: string,
+      _profile?: { displayName?: string; photoUrl?: string | null },
+      lineLoginContext?: {
+        code?: string;
+        state?: string;
+        liffClientId?: string;
+        liffRedirectUri?: string;
+      },
+    ) => {
+      receivedContext = lineLoginContext;
+      return Promise.resolve({
         id: "user-1",
         displayName: "Test User",
         photoUrl: null,
@@ -111,11 +130,17 @@ Deno.test("POST /v1/line/login stores lineUserId and returns user", async () => 
         },
         createdAt: "now",
         updatedAt: "now",
-      }),
+      });
+    },
   } as unknown as UserService;
   const mockLineLoginService = {
     verifyIdToken: (token: string) =>
-      Promise.resolve({ lineUserId: `line-${token}`, expiresAt: 1 }),
+      Promise.resolve({
+        lineUserId: `line-${token}`,
+        displayName: "Line User",
+        pictureUrl: "http://example.com/line.jpg",
+        expiresAt: 1,
+      }),
   } as unknown as LineLoginService;
 
   registerLineRoutes(
@@ -128,11 +153,20 @@ Deno.test("POST /v1/line/login stores lineUserId and returns user", async () => 
   const res = await app.request("/v1/line/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken: "id-token" }),
+    body: JSON.stringify({
+      idToken: "id-token",
+      lineLoginContext: {
+        code: "code-123",
+        state: "state-456",
+        liffClientId: "liff-789",
+        liffRedirectUri: "http://localhost:5173/settings/notifications",
+      },
+    }),
   });
 
   assertEquals(res.status, 200);
   const json = await res.json();
   assertEquals(json.lineUserId, "line-id-token");
   assertEquals(json.user.notificationSettings.lineUserId, "line-id-token");
+  assertEquals(receivedContext?.code, "code-123");
 });

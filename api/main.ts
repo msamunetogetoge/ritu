@@ -64,6 +64,18 @@ const communityRepo = client
   ? new FirestoreCommunityRepository({ client })
   : new InMemoryCommunityRepository();
 
+if (userRepo instanceof InMemoryUserRepository) {
+  await userRepo.create("mock-token", {
+    displayName: "Mock User",
+    photoUrl: null,
+    notificationSettings: {
+      emailEnabled: false,
+      lineEnabled: false,
+    },
+    isPremium: false,
+  });
+}
+
 // Initialize Services
 const routineService = new RoutineService({ repository: routineRepo, userRepository: userRepo });
 const userService = new UserService({ repository: userRepo });
