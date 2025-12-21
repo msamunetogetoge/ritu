@@ -1,10 +1,3 @@
-export interface LineProfile {
-  userId: string;
-  displayName: string;
-  pictureUrl?: string;
-  statusMessage?: string;
-}
-
 /** LINE Login のリダイレクトURLに付与されるパラメータ。 */
 export interface LineLoginContext {
   code?: string;
@@ -34,11 +27,11 @@ async function loadLiff() {
 }
 
 /**
- * LINE Login の ID トークンとプロフィールを取得する。
+ * LINE Login の ID トークンを取得する。
  * 未ログイン時は LINE のログイン画面に遷移する。
  */
 export async function getLineLoginToken(): Promise<
-  { idToken: string; profile: LineProfile; lineLoginContext?: LineLoginContext }
+  { idToken: string; lineLoginContext?: LineLoginContext }
 > {
   const liff = await loadLiff();
 
@@ -53,16 +46,9 @@ export async function getLineLoginToken(): Promise<
     throw new Error("LINEのIDトークンを取得できませんでした。");
   }
 
-  const profile = await liff.getProfile();
   const lineLoginContext = getLineLoginContextFromUrl();
   return {
     idToken,
-    profile: {
-      userId: profile.userId,
-      displayName: profile.displayName,
-      pictureUrl: profile.pictureUrl ?? undefined,
-      statusMessage: profile.statusMessage ?? undefined,
-    },
     lineLoginContext,
   };
 }

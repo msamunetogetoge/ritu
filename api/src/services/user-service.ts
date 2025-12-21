@@ -70,7 +70,6 @@ export class UserService {
   async linkLineUserId(
     userId: string,
     lineUserId: string,
-    profile?: { displayName?: string; photoUrl?: string | null },
     lineLoginContext?: LineLoginContext,
   ): Promise<User> {
     const sanitizedId = lineUserId.trim();
@@ -89,8 +88,8 @@ export class UserService {
       mergedSettings.lineLoginContext = lineLoginContext;
     }
     if (!user) {
-      const displayName = profile?.displayName?.trim() || "LINE User";
-      const photoUrl = profile?.photoUrl ?? null;
+      const displayName = "LINE User";
+      const photoUrl = null;
       return await this.#repository.create(userId, {
         displayName,
         photoUrl,

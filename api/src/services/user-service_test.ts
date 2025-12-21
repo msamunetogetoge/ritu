@@ -48,14 +48,11 @@ Deno.test("UserService linkLineUserId creates user if not exists", async () => {
   const service = new UserService({ repository });
   const userId = "line-user-create";
 
-  const linked = await service.linkLineUserId(userId, "U-line-id", {
-    displayName: "Line User",
-    photoUrl: "http://example.com/line.jpg",
-  });
+  const linked = await service.linkLineUserId(userId, "U-line-id");
 
   assertEquals(linked.id, userId);
-  assertEquals(linked.displayName, "Line User");
-  assertEquals(linked.photoUrl, "http://example.com/line.jpg");
+  assertEquals(linked.displayName, "LINE User");
+  assertEquals(linked.photoUrl, null);
   assertEquals(linked.notificationSettings?.lineUserId, "U-line-id");
   assertEquals(linked.notificationSettings?.lineEnabled, true);
 });
@@ -74,7 +71,7 @@ Deno.test("UserService linkLineUserId stores id and keeps existing settings", as
     },
   });
 
-  const linked = await service.linkLineUserId(userId, "U-line-id", undefined, {
+  const linked = await service.linkLineUserId(userId, "U-line-id", {
     code: "code-123",
     state: "state-456",
     liffClientId: "liff-789",

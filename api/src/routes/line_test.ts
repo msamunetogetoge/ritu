@@ -110,7 +110,6 @@ Deno.test("POST /v1/line/login stores lineUserId and returns user", async () => 
     linkLineUserId: (
       _userId: string,
       lineUserId: string,
-      _profile?: { displayName?: string; photoUrl?: string | null },
       lineLoginContext?: {
         code?: string;
         state?: string;

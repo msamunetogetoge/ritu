@@ -16,6 +16,7 @@ export default function NotificationSettingsPage(): JSX.Element {
   const [baseNotificationSettings, setBaseNotificationSettings] = useState<
     NotificationSettings | null
   >(null);
+  const [autoLinkAttempted, setAutoLinkAttempted] = useState(false);
   const [lineConfig, setLineConfig] = useState<
     { friendUrl: string; friendQr: string } | null
   >(null);
@@ -28,6 +29,16 @@ export default function NotificationSettingsPage(): JSX.Element {
     if (!authUser) return;
     loadSettings();
   }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser || autoLinkAttempted || linking) return;
+    if (!hasLineLoginParams()) {
+      setAutoLinkAttempted(true);
+      return;
+    }
+    setAutoLinkAttempted(true);
+    handleLineLogin();
+  }, [authUser, autoLinkAttempted, linking]);
 
   const loadSettings = async () => {
     setLoading(true);
@@ -98,6 +109,17 @@ export default function NotificationSettingsPage(): JSX.Element {
       const result = await linkLineLogin(idToken, lineLoginContext);
       setLineUserId(result.lineUserId);
       setLineEnabled(true);
+      setBaseNotificationSettings((prev) => ({
+        ...(prev ?? {
+          emailEnabled: false,
+          lineEnabled: false,
+          lineUserId: null,
+        }),
+        lineEnabled: true,
+        lineUserId: result.lineUserId,
+        lineLoginContext: lineLoginContext ?? prev?.lineLoginContext,
+      }));
+      clearLineLoginParams();
       alert("LINEと連携しました。必要に応じて他の設定も保存してください。");
     } catch (e: unknown) {
       if (e instanceof Error) {
@@ -108,6 +130,22 @@ export default function NotificationSettingsPage(): JSX.Element {
     } finally {
       setLinking(false);
     }
+  };
+
+  const hasLineLoginParams = () => {
+    const search = globalThis.location?.search ?? "";
+    if (!search) return false;
+    const params = new URLSearchParams(search);
+    return ["code", "state", "liffClientId", "liffRedirectUri"].some((key) =>
+      params.has(key)
+    );
+  };
+
+  const clearLineLoginParams = () => {
+    if (!globalThis.history || !globalThis.location) return;
+    const url = new URL(globalThis.location.href);
+    url.search = "";
+    globalThis.history.replaceState({}, "", url.toString());
   };
 
   if (loading) return <div className="p-4">読み込み中...</div>;

@@ -55,10 +55,6 @@ export const registerLineRoutes = (
       const user = await userService.linkLineUserId(
         userId,
         login.lineUserId,
-        {
-          displayName: login.displayName,
-          photoUrl: login.pictureUrl ?? null,
-        },
         body?.lineLoginContext,
       );
       if (isLocal()) {
